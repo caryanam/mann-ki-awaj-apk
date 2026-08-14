@@ -91,7 +91,9 @@ export function mapPost(post) {
   return {
     ...post,
     id: post.id || post.postId || `post_${Date.now()}`,
-    title: post.title || '',
+    originalTitle: post.originalTitle || post.title || '',
+    translatedTitle: post.translatedTitle || post.title || '',
+    title: post.translatedTitle || post.title || '',
     topic: mapBackendTopicToUI(post.topic || post.category),
     postType: post.postType || 'Thought',
     originalContent: post.originalContent || post.content || '',
@@ -123,7 +125,9 @@ export function mapComment(comment) {
 
   return {
     ...comment,
-    content: comment.originalContent || comment.content || '',
+    originalContent: comment.originalContent || comment.content || '',
+    translatedContent: comment.translatedContent || comment.originalContent || comment.content || '',
+    content: comment.translatedContent || comment.originalContent || comment.content || '',
     username: formattedUname,
     avatarInitials: comment.avatarInitials || formattedUname.replace('@', '').slice(0, 2).toUpperCase(),
     avatarConfig: comment.authorAvatar || comment.avatarConfig || null,
@@ -137,7 +141,7 @@ export function mapComment(comment) {
 export function mapNotification(notification) {
   if (!notification) return null;
 
-  let msg = notification.message || notification.content || '';
+  let msg = notification.translatedMessage || notification.translatedContent || notification.message || notification.content || '';
   let rawActor = notification.senderUsername || notification.actorUsername || notification.actorName || notification.username || notification.actor?.username;
 
   // Map old database entries with real names to anonymous handles

@@ -1,25 +1,40 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UI_DICTIONARY, SUPPORTED_LANGUAGES } from '../utils/translations';
-import { apiTranslationService } from '../services/apiTranslationService';
+import { apiTranslationService, detectTextLanguage, normalizeLanguageCode } from '../services/apiTranslationService';
 import { apiService } from '../services/apiService';
 import { localStorage } from '../services/localStorage';
+import { useAuth } from './AuthContext';
 
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
   const [currentLanguage, setCurrentLanguage] = useState('EN');
   const [translationCache, setTranslationCache] = useState({});
+  const { currentUser, updateProfile } = useAuth();
 
-  // Sync preferred language from profile DB on mount if logged in
+  // Sync preferred language from profile DB or Auth context reactively
   useEffect(() => {
     async function syncLanguage() {
       try {
+        if (currentUser) {
+          const preferred = currentUser.profile?.preferredLanguage || currentUser.preferredLanguage;
+          if (preferred) {
+            const normalized = preferred === 'Hindi' ? 'HI' : (preferred === 'Marathi' ? 'MR' : (preferred === 'Gujarati' ? 'GU' : 'EN'));
+            if (normalized !== currentLanguage) {
+              setCurrentLanguage(normalized);
+            }
+            return;
+          }
+        }
+        
         const token = localStorage.getItem('auth_token');
         if (token && !token.startsWith('mock')) {
           const profile = await apiService.getMyProfile();
           if (profile?.preferredLanguage) {
-            const normalized = profile.preferredLanguage === 'Hindi' ? 'HI' : (profile.preferredLanguage === 'Marathi' ? 'MR' : 'EN');
-            setCurrentLanguage(normalized);
+            const normalized = profile.preferredLanguage === 'Hindi' ? 'HI' : (profile.preferredLanguage === 'Marathi' ? 'MR' : (profile.preferredLanguage === 'Gujarati' ? 'GU' : 'EN'));
+            if (normalized !== currentLanguage) {
+              setCurrentLanguage(normalized);
+            }
           }
         }
       } catch (err) {
@@ -27,19 +42,29 @@ export function LanguageProvider({ children }) {
       }
     }
     syncLanguage();
-  }, []);
+  }, [currentUser]);
 
   const changeLanguage = async (langCode) => {
     if (!langCode || langCode === currentLanguage) return;
 
     setCurrentLanguage(langCode);
 
+    // Normalize code for backend: 'HI' -> 'Hindi', 'MR' -> 'Marathi', 'GU' -> 'Gujarati', 'EN' -> 'English'
+    const backendLang = langCode === 'HI' ? 'Hindi' : (langCode === 'MR' ? 'Marathi' : (langCode === 'GU' ? 'Gujarati' : 'English'));
+
     try {
       const token = localStorage.getItem('auth_token');
       if (token && !token.startsWith('mock')) {
-        // Normalize code for backend: 'HI' -> 'Hindi', 'MR' -> 'Marathi', 'EN' -> 'English'
-        const backendLang = langCode === 'HI' ? 'Hindi' : (langCode === 'MR' ? 'Marathi' : 'English');
         await apiService.updateLanguage(backendLang);
+      }
+      
+      // Update local profile preferredLanguage if user is logged in
+      if (currentUser && updateProfile) {
+        const updatedProfile = { 
+          ...(currentUser.profile || {}), 
+          preferredLanguage: backendLang 
+        };
+        updateProfile({ profile: updatedProfile, preferredLanguage: backendLang });
       }
     } catch (err) {
       console.warn('[LanguageContext] Failed to update language on backend:', err.message);
@@ -48,7 +73,7 @@ export function LanguageProvider({ children }) {
 
   const t = (key, defaultText) => {
     // Resolve key code
-    const langKey = currentLanguage === 'HI' ? 'Hindi' : (currentLanguage === 'MR' ? 'Marathi' : 'English');
+    const langKey = currentLanguage === 'HI' ? 'Hindi' : (currentLanguage === 'MR' ? 'Marathi' : (currentLanguage === 'GU' ? 'Gujarati' : 'English'));
     const dict = UI_DICTIONARY[langKey];
     if (dict && dict[key]) return dict[key];
 
@@ -56,15 +81,21 @@ export function LanguageProvider({ children }) {
     return UI_DICTIONARY['English']?.[key] || defaultText || key;
   };
 
+  const getCacheKey = (text, targetLang, sourceLang) => {
+    const src = sourceLang ? (normalizeLanguageCode(sourceLang) || 'EN') : detectTextLanguage(text);
+    const target = normalizeLanguageCode(targetLang) || 'EN';
+    return `${src}_${target}_${text.trim()}`;
+  };
+
   const translateTextAsync = async (text, targetLang = currentLanguage, sourceLang = null) => {
     if (!text || !text.trim()) return text;
-    // Map code HI/MR -> hin_Deva/mar_Deva
-    const mappedTarget = targetLang === 'HI' ? 'hin_Deva' : (targetLang === 'MR' ? 'mar_Deva' : 'eng_Latn');
-    const cacheKey = `${sourceLang || 'AUTO'}_${targetLang}_${text.trim()}`;
+    
+    const cacheKey = getCacheKey(text, targetLang, sourceLang);
+    
     if (translationCache[cacheKey]) return translationCache[cacheKey];
 
     try {
-      const result = await apiTranslationService.translateText(text, mappedTarget, sourceLang);
+      const result = await apiTranslationService.translateText(text, targetLang, sourceLang);
       setTranslationCache(prev => ({ ...prev, [cacheKey]: result }));
       return result;
     } catch (err) {
@@ -75,7 +106,8 @@ export function LanguageProvider({ children }) {
 
   const translateText = (text, targetLang = currentLanguage, sourceLang = null) => {
     if (!text || !text.trim()) return text;
-    const cacheKey = `${sourceLang || 'AUTO'}_${targetLang}_${text.trim()}`;
+    
+    const cacheKey = getCacheKey(text, targetLang, sourceLang);
     if (translationCache[cacheKey]) {
       return translationCache[cacheKey];
     }

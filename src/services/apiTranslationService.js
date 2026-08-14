@@ -16,6 +16,12 @@ export const LANGUAGE_MAP = {
   OR: 'OR',
   AS: 'AS',
   UR: 'UR',
+  SAT: 'SAT',
+  KS: 'KS',
+  MNI: 'MNI',
+  DOI: 'DOI',
+  BHO: 'BHO',
+  AUTO: 'AUTO',
 
   // Full Display Names
   English: 'EN',
@@ -31,6 +37,13 @@ export const LANGUAGE_MAP = {
   Odia: 'OR',
   Assamese: 'AS',
   Urdu: 'UR',
+  Santali: 'SAT',
+  Kashmiri: 'KS',
+  Manipuri: 'MNI',
+  Dogri: 'DOI',
+  Bhojpuri: 'BHO',
+  'Auto Detect': 'AUTO',
+  Auto: 'AUTO',
 
   // FLORES-200 Codes
   eng_Latn: 'EN',
@@ -117,17 +130,54 @@ export const apiTranslationService = {
 
     const srcSent = sourceLang === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLang] || sourceLang);
 
+    // PRESERVATION PRE-PROCESSING
+    const placeholders = [];
+    let placeholderCount = 0;
+
+    // 1. URLs
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+    let processedText = text.replace(urlRegex, (match) => {
+      const placeholder = `__PRESERVED_URL_${placeholderCount++}__`;
+      placeholders.push({ placeholder, original: match });
+      return placeholder;
+    });
+
+    // 2. Usernames
+    const usernameRegex = /@[\w-]+/g;
+    processedText = processedText.replace(usernameRegex, (match) => {
+      const placeholder = `__PRESERVED_USER_${placeholderCount++}__`;
+      placeholders.push({ placeholder, original: match });
+      return placeholder;
+    });
+
+    // 3. Numbers
+    const numRegex = /\b\d+\b/g;
+    processedText = processedText.replace(numRegex, (match) => {
+      const placeholder = `__PRESERVED_NUM_${placeholderCount++}__`;
+      placeholders.push({ placeholder, original: match });
+      return placeholder;
+    });
+
     console.log('[MKA MOBILE TRANSLATION DEBUG]', {
       'Input text': text.trim(),
+      'Processed text': processedText,
       'Target language': tgtCode,
       'Source language sent': srcSent,
     });
 
     try {
-      const translated = await apiService.translateText(text, tgtCode, srcSent || 'auto');
+      const translated = await apiService.translateText(processedText, tgtCode, srcSent || 'auto');
       if (translated) {
-        translationCache.set(cacheKey, translated);
-        return translated;
+        // PRESERVATION POST-PROCESSING (RESTORE)
+        let restored = translated;
+        for (const item of placeholders) {
+          const escapedPlaceholder = item.placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const spacingRegex = new RegExp(escapedPlaceholder.split('_').join('\\s*_\\s*'), 'gi');
+          restored = restored.replace(spacingRegex, item.original);
+        }
+        
+        translationCache.set(cacheKey, restored);
+        return restored;
       }
     } catch (err) {
       console.warn('Mobile translation service error:', err?.message || err);

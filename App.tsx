@@ -800,7 +800,6 @@ function CommentItem({ comment: c, postId, currentUser }: { comment: any; postId
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(c.content);
   const [showEmojis, setShowEmojis] = useState(false);
-  const [showOriginal, setShowOriginal] = useState(false);
 
   const handleSendReply = () => {
     if (!replyText.trim()) { return; }
@@ -817,13 +816,7 @@ function CommentItem({ comment: c, postId, currentUser }: { comment: any; postId
 
   const { currentLanguage, translateText } = useLanguage();
 
-  const hasPreTranslation = c.originalContent && c.content && c.originalContent !== c.content;
-  const displayContent = showOriginal
-    ? (c.originalContent || c.content)
-    : (hasPreTranslation ? c.content : translateText(c.originalContent || c.content, currentLanguage));
-
-  const originalLanguage = c.displayLanguage === 'HI' ? 'HI' : (c.displayLanguage === 'MR' ? 'MR' : 'EN');
-  const showButton = hasPreTranslation || (originalLanguage !== currentLanguage);
+  const displayContent = translateText(c.originalContent || c.content, currentLanguage);
 
   const isOwner = c.username === currentUser?.username;
   const reactionCount: any = Object.values(c.reactions || {}).reduce((a: any, b: any) => a + b, 0);
@@ -842,13 +835,6 @@ function CommentItem({ comment: c, postId, currentUser }: { comment: any; postId
           <TouchableOpacity onPress={() => setShowEmojis(!showEmojis)}>
             <Text style={{ fontSize: 13 }}>😀</Text>
           </TouchableOpacity>
-          {showButton && (
-            <TouchableOpacity onPress={() => setShowOriginal(!showOriginal)}>
-              <Text style={{ fontSize: 11, color: COLORS.deepPlum, fontWeight: 'bold' }}>
-                {showOriginal ? (currentLanguage === 'HI' ? 'अनुवाद देखें' : 'Show Translation') : 'Original'}
-              </Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity onPress={() => setShowReplyInput(!showReplyInput)}>
             <Text style={{ fontSize: 11, color: '#8C8385', fontWeight: 'bold' }}>Reply</Text>
           </TouchableOpacity>
@@ -968,16 +954,10 @@ function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, se
   onOpenComments: any;
 }) {
   const { toggleSavePost, deletePost } = usePosts();
-  const { currentLanguage, translateText } = useLanguage();
-  const [showOriginal, setShowOriginal] = useState(false);
+  const { currentLanguage, translateText, t } = useLanguage();
 
-  const hasPreTranslation = item.originalContent && item.content && item.originalContent !== item.content;
-  const displayContent = showOriginal
-    ? (item.originalContent || item.content)
-    : (hasPreTranslation ? item.content : translateText(item.originalContent || item.content, currentLanguage));
-
-  const originalLanguage = item.language || 'EN';
-  const showButton = hasPreTranslation || (originalLanguage !== currentLanguage);
+  const displayTitle = translateText(item.originalTitle || item.title, currentLanguage);
+  const displayContent = translateText(item.originalContent || item.content, currentLanguage);
 
   const userReacted = item.userReaction;
   const topicColors: Record<string, string> = {
@@ -1005,8 +985,17 @@ function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, se
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={styles.postUsername}>{item.username}</Text>
             {isPostOwner && (
-              <TouchableOpacity onPress={() => deletePost(item.id)}>
-                <Text style={{ fontSize: 11, color: COLORS.error }}>🗑️ Delete</Text>
+              <TouchableOpacity onPress={() => {
+                Alert.alert(
+                  t('delete', 'Delete'),
+                  t('deletePostConfirm', 'Are you sure you want to delete this post?'),
+                  [
+                    { text: t('cancel', 'Cancel'), style: 'cancel' },
+                    { text: t('delete', 'Delete'), style: 'destructive', onPress: () => deletePost(item.id) }
+                  ]
+                );
+              }}>
+                <Text style={{ fontSize: 11, color: COLORS.error }}>🗑️ {t('delete', 'Delete')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1022,17 +1011,8 @@ function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, se
         </View>
       </View>
 
-      <Text style={styles.postTitle}>{item.title}</Text>
+      <Text style={styles.postTitle}>{displayTitle}</Text>
       <Text style={styles.postContent}>{displayContent}</Text>
-
-      {/* Dynamic Translation Label */}
-      {showButton && (
-        <TouchableOpacity onPress={() => setShowOriginal(!showOriginal)} style={{ alignSelf: 'flex-start', marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, color: COLORS.deepPlum, fontWeight: 'bold' }}>
-            🌐 {showOriginal ? `Translate to ${currentLanguage === 'HI' ? 'Hindi' : (currentLanguage === 'MR' ? 'Marathi' : 'English')}` : `Show Original (${originalLanguage})`}
-          </Text>
-        </TouchableOpacity>
-      )}
 
       {/* Reactions display pills */}
       <View style={styles.reactionsDisplayRow}>
@@ -1107,6 +1087,7 @@ function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, se
 function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
   const { posts, reactToPost, addComment, fileReport, loadComments } = usePosts();
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
 
   const [selectedTopic, setSelectedTopic] = useState('All');
   const [selectedPost, setSelectedPost] = useState<any>(null);
@@ -1149,7 +1130,7 @@ function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
     setReportNotes('');
     setReportModalVisible(false);
     setActiveReportPost(null);
-    Alert.alert('Thank you', 'Content has been flagged for admin moderation.');
+    Alert.alert(t('thankYou', 'Thank you'), t('flaggedForMod', 'Content has been flagged for admin moderation.'));
   };
 
   const activePostForModal = posts.find((p: any) => p.id === selectedPost?.id) || selectedPost;
@@ -1169,7 +1150,13 @@ function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
               onPress={() => setSelectedTopic(t)}
             >
               <Text style={[styles.topicChipText, selectedTopic === t && { color: '#FFF', fontWeight: 'bold' }]}>
-                {t}
+                {t === 'All' ? useLanguage().t('topicAll', 'All') :
+                 t === 'General' ? useLanguage().t('topicGeneral', 'General') :
+                 t === 'Mental Health' ? useLanguage().t('topicMentalHealth', 'Mental Health') :
+                 t === 'Career' ? useLanguage().t('topicCareer', 'Career') :
+                 t === 'Relationships' ? useLanguage().t('topicRelationships', 'Relationships') :
+                 t === 'Tech & Society' ? useLanguage().t('topicTechSociety', 'Tech & Society') :
+                 t === 'Confessions' ? useLanguage().t('topicConfessions', 'Confessions') : t}
               </Text>
             </TouchableOpacity>
           ))}
@@ -1303,6 +1290,7 @@ function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
 function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
   const { createPost } = usePosts();
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -1349,11 +1337,11 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
 
   return (
     <ScrollView style={styles.createContainer} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.screenTitle}>Create post anonymously</Text>
+      <Text style={styles.screenTitle}>{t('createPost', 'Create post anonymously')}</Text>
 
-      <Text style={styles.fieldLabel}>Title (Optional)</Text>
+      <Text style={styles.fieldLabel}>{t('titleOptional', 'Title (Optional)')}</Text>
       <TextInput
-        placeholder="A summary of your thought..."
+        placeholder={t('titlePlaceholder', 'A summary of your thought...')}
         placeholderTextColor={COLORS.zorba}
         value={title}
         onChangeText={setTitle}
@@ -1361,17 +1349,17 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
       />
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={styles.fieldLabel}>What is on your mind?</Text>
+        <Text style={styles.fieldLabel}>{t('whatIsOnYourMind', 'What is on your mind?')}</Text>
         <TouchableOpacity
           onPress={startVoiceRecording}
           style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.deepPlumLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
         >
           <Text style={{ fontSize: 13, marginRight: 4 }}>🎙️</Text>
-          <Text style={{ fontSize: 11, color: COLORS.deepPlum, fontWeight: 'bold' }}>Voice Post</Text>
+          <Text style={{ fontSize: 11, color: COLORS.deepPlum, fontWeight: 'bold' }}>{t('voicePost', 'Voice Post')}</Text>
         </TouchableOpacity>
       </View>
       <TextInput
-        placeholder="Type your thoughts here... Be honest, you are completely anonymous."
+        placeholder={t('contentPlaceholder', 'Type your thoughts here... Be honest, you are completely anonymous.')}
         placeholderTextColor={COLORS.zorba}
         value={content}
         onChangeText={setContent}
@@ -1380,20 +1368,27 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
         style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
       />
 
-      <Text style={styles.fieldLabel}>Select Topic</Text>
+      <Text style={styles.fieldLabel}>{t('selectTopic', 'Select Topic')}</Text>
       <View style={styles.pickerRow}>
-        {topics.map(t => (
+        {topics.map(topicItem => (
           <TouchableOpacity
-            key={t}
-            style={[styles.pickerChip, topic === t && styles.pickerChipActive]}
-            onPress={() => setTopic(t)}
+            key={topicItem}
+            style={[styles.pickerChip, topic === topicItem && styles.pickerChipActive]}
+            onPress={() => setTopic(topicItem)}
           >
-            <Text style={[styles.pickerChipText, topic === t && styles.pickerChipTextActive]}>{t}</Text>
+            <Text style={[styles.pickerChipText, topic === topicItem && styles.pickerChipTextActive]}>
+              {topicItem === 'General' ? t('topicGeneral', 'General') :
+               topicItem === 'Mental Health' ? t('topicMentalHealth', 'Mental Health') :
+               topicItem === 'Career' ? t('topicCareer', 'Career') :
+               topicItem === 'Relationships' ? t('topicRelationships', 'Relationships') :
+               topicItem === 'Tech & Society' ? t('topicTechSociety', 'Tech & Society') :
+               topicItem === 'Confessions' ? t('topicConfessions', 'Confessions') : topicItem}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.fieldLabel}>Select Post Type</Text>
+      <Text style={styles.fieldLabel}>{t('selectPostType', 'Select Post Type')}</Text>
       <View style={styles.pickerRow}>
         {postTypes.map(pt => (
           <TouchableOpacity
@@ -1407,7 +1402,7 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
       </View>
 
       <TouchableOpacity onPress={handlePublish} style={styles.publishButton}>
-        <Text style={styles.publishButtonText}>Publish Anonymously</Text>
+        <Text style={styles.publishButtonText}>{t('publishAnonymously', 'Publish Anonymously')}</Text>
       </TouchableOpacity>
 
       {/* Pulsing Voice Recording Modal */}
@@ -1418,9 +1413,9 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
       >
         <SafeAreaView style={styles.centerModalOverlay}>
           <View style={[styles.reportModalCard, { alignItems: 'center', paddingVertical: 32 }]}>
-            <Text style={[styles.reportModalTitle, { color: COLORS.error }]}>🎙️ Listening...</Text>
+            <Text style={[styles.reportModalTitle, { color: COLORS.error }]}>🎙️ {t('listening', 'Listening...')}</Text>
             <Text style={[styles.reportModalSubtitle, { textAlign: 'center', marginTop: 8, paddingHorizontal: 12 }]}>
-              Speak now. Converting your voice to anonymous text in real-time.
+              {t('speakNow', 'Speak now. Converting your voice to anonymous text in real-time.')}
             </Text>
 
             {/* Pulsing Ring Simulation */}
@@ -1457,6 +1452,7 @@ function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
 function ChatScreen({ activeConversation, onBackToConversations }: { activeConversation: any; onBackToConversations: any }) {
   const { conversations, sendMessage, markAsRead, fetchMessagesForRoom, setActiveRoomId } = useChat();
   const { currentUser } = useAuth();
+  const { t, currentLanguage, translateText } = useLanguage();
   const [selectedConvoId, setSelectedConvoId] = useState(activeConversation || null);
   const [msgText, setMsgText] = useState('');
 
@@ -1554,7 +1550,7 @@ function ChatScreen({ activeConversation, onBackToConversations }: { activeConve
           {isSearching ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <TextInput
-                placeholder="Search messages..."
+                placeholder={t('searchPlaceholder', 'Search messages...')}
                 placeholderTextColor={COLORS.zorba}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1605,7 +1601,7 @@ function ChatScreen({ activeConversation, onBackToConversations }: { activeConve
 
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#2D1D15' }}>{activeConvo.username}</Text>
-                  <Text style={{ fontSize: 11, color: '#3F7772', marginTop: 1, fontWeight: '600' }}>Online</Text>
+                  <Text style={{ fontSize: 11, color: '#3F7772', marginTop: 1, fontWeight: '600' }}>{t('online', 'Online')}</Text>
                 </View>
               </View>
 
@@ -1655,7 +1651,7 @@ function ChatScreen({ activeConversation, onBackToConversations }: { activeConve
                     }
                   ]}>
                     <Text style={[styles.messageText, isMe ? styles.msgMeText : styles.msgPartnerText]}>
-                      {m.text}
+                      {isMe ? m.text : translateText(m.text, currentLanguage)}
                     </Text>
                   </View>
 
@@ -1712,7 +1708,7 @@ function ChatScreen({ activeConversation, onBackToConversations }: { activeConve
             <Text style={{ fontSize: 20, color: '#8C8385' }}>😊</Text>
           </TouchableOpacity>
           <TextInput
-            placeholder="Type a message..."
+            placeholder={t('typeAMessage', 'Type a message...')}
             placeholderTextColor={COLORS.zorba}
             value={msgText}
             onChangeText={setMsgText}
@@ -1760,9 +1756,9 @@ function ChatScreen({ activeConversation, onBackToConversations }: { activeConve
         >
           <SafeAreaView style={styles.centerModalOverlay}>
             <View style={[styles.reportModalCard, { alignItems: 'center', paddingVertical: 32 }]}>
-              <Text style={[styles.reportModalTitle, { color: COLORS.error }]}>🎙️ Listening...</Text>
+              <Text style={[styles.reportModalTitle, { color: COLORS.error }]}>🎙️ {t('listening', 'Listening...')}</Text>
               <Text style={[styles.reportModalSubtitle, { textAlign: 'center', marginTop: 8, paddingHorizontal: 12 }]}>
-                Speak now. Converting your voice to anonymous text in real-time.
+                {t('speakNow', 'Speak now. Converting your voice to anonymous text in real-time.')}
               </Text>
 
               {/* Pulsing Ring Simulation */}
@@ -1834,6 +1830,7 @@ function ProfileScreen() {
 
   const [bioInput, setBioInput] = useState(currentUser?.bio || '');
   const [isEditing, setIsEditing] = useState(false);
+  const [langPickerVisible, setLangPickerVisible] = useState(false);
 
   // Info modal states
   const [aboutVisible, setAboutVisible] = useState(false);
@@ -1881,7 +1878,7 @@ function ProfileScreen() {
         <Text style={styles.profileUsername}>{currentUser?.username}</Text>
 
         <View style={styles.avatarColorSelector}>
-          <Text style={styles.selectorLabel}>Customize Avatar Color:</Text>
+          <Text style={styles.selectorLabel}>{t('customizeAvatarColor', 'Customize Avatar Color:')}</Text>
           <View style={styles.colorPaletteRow}>
             {AVATAR_COLORS.map(color => (
               <TouchableOpacity
@@ -1902,20 +1899,20 @@ function ProfileScreen() {
       <View style={styles.statsCard}>
         <View style={styles.statColumn}>
           <Text style={styles.statNumber}>{ownPosts.length}</Text>
-          <Text style={styles.statLabel}>Thoughts</Text>
+          <Text style={styles.statLabel}>{t('thoughts', 'Thoughts')}</Text>
         </View>
         <View style={styles.statColumn}>
           <Text style={styles.statNumber}>{reactionsReceived}</Text>
-          <Text style={styles.statLabel}>Reactions</Text>
+          <Text style={styles.statLabel}>{t('reactions', 'Reactions')}</Text>
         </View>
       </View>
 
       {/* User Bio section */}
       <View style={styles.bioCard}>
         <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>Anonymous Bio</Text>
+          <Text style={styles.bioTitle}>{t('anonymousBio', 'Anonymous Bio')}</Text>
           <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
-            <Text style={styles.bioEditButtonText}>{isEditing ? 'Cancel' : 'Edit'}</Text>
+            <Text style={styles.bioEditButtonText}>{isEditing ? t('cancel', 'Cancel') : t('edit', 'Edit')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -1929,37 +1926,12 @@ function ProfileScreen() {
               style={styles.bioTextInput}
             />
             <TouchableOpacity onPress={handleSaveProfile} style={styles.bioSaveButton}>
-              <Text style={styles.bioSaveText}>Save Profile</Text>
+              <Text style={styles.bioSaveText}>{t('saveProfile', 'Save Profile')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={styles.bioText}>{currentUser?.bio || 'No bio written yet...'}</Text>
+          <Text style={styles.bioText}>{currentUser?.bio || t('noBio', 'No bio written yet...')}</Text>
         )}
-      </View>
-
-      {/* Support & Guidelines Section */}
-      <View style={styles.bioCard}>
-        <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>📋 Support & Guidelines</Text>
-        </View>
-        <Text style={styles.bioText}>Review community policies, platform specifications, or reach out to support.</Text>
-
-        <View style={styles.infoActionRow}>
-          <TouchableOpacity onPress={() => setAboutVisible(true)} style={styles.infoActionBtn}>
-            <Text style={styles.infoActionText}>ℹ️ About Platform</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setGuidelinesVisible(true)} style={styles.infoActionBtn}>
-            <Text style={styles.infoActionText}>📜 Guidelines</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.infoActionRow}>
-          <TouchableOpacity onPress={() => setPrivacyVisible(true)} style={styles.infoActionBtn}>
-            <Text style={styles.infoActionText}>🔒 Privacy Policy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setContactVisible(true)} style={styles.infoActionBtn}>
-            <Text style={styles.infoActionText}>💬 Contact Support</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Preferred Language Selector */}
@@ -1970,40 +1942,94 @@ function ProfileScreen() {
         <Text style={[styles.bioText, { marginBottom: 12 }]}>
           Change your language preference. This updates static UI text and feed translation targets.
         </Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {supportedLanguages.map((lang: any) => {
-            const isActive = currentLanguage === lang.code;
-            return (
-              <TouchableOpacity
-                key={lang.code}
-                onPress={() => changeLanguage(lang.code)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: isActive ? COLORS.deepPlum : '#E1DCDB',
-                  backgroundColor: isActive ? COLORS.deepPlum : '#FFFFFF',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{
-                  fontSize: 13,
-                  fontWeight: 'bold',
-                  color: isActive ? '#FFFFFF' : '#2D1D15',
-                }}>
-                  {lang.native}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        
+        {/* Dropdown Button */}
+        <TouchableOpacity
+          onPress={() => setLangPickerVisible(true)}
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: '#E1DCDB',
+            backgroundColor: '#FFFFFF',
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#2D1D15' }}>
+            {(() => {
+              const activeLang = supportedLanguages.find((lang: any) => lang.code === currentLanguage);
+              return activeLang ? `${activeLang.native} (${activeLang.label})` : currentLanguage;
+            })()}
+          </Text>
+          <Text style={{ fontSize: 14, color: '#8C8385' }}>▼</Text>
+        </TouchableOpacity>
+
+        {/* Custom Dropdown Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={langPickerVisible}
+          onRequestClose={() => setLangPickerVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.centerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setLangPickerVisible(false)}
+          >
+            <View style={[styles.reportModalCard, { maxHeight: '70%', paddingVertical: 20 }]}>
+              <View style={[styles.modalHeader, { paddingHorizontal: 4, marginBottom: 12 }]}>
+                <Text style={styles.modalTitle}>{t('preferredLanguage', 'Preferred Language')}</Text>
+                <TouchableOpacity onPress={() => setLangPickerVisible(false)} style={styles.modalCloseButton}>
+                  <Text style={styles.modalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ width: '100%' }}>
+                {supportedLanguages.map((lang: any) => {
+                  const isActive = currentLanguage === lang.code;
+                  return (
+                    <TouchableOpacity
+                      key={lang.code}
+                      onPress={() => {
+                        changeLanguage(lang.code);
+                        setLangPickerVisible(false);
+                      }}
+                      style={{
+                        paddingVertical: 14,
+                        paddingHorizontal: 16,
+                        borderBottomWidth: 1,
+                        borderBottomColor: '#F8F5F4',
+                        backgroundColor: isActive ? 'rgba(111, 64, 95, 0.05)' : 'transparent',
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: isActive ? 'bold' : 'normal',
+                        color: isActive ? COLORS.deepPlum : '#2D1D15',
+                      }}>
+                        {lang.native} ({lang.label})
+                      </Text>
+                      {isActive && (
+                        <Text style={{ color: COLORS.deepPlum, fontWeight: 'bold' }}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </View>
 
       {/* Logout Action */}
       <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-        <Text style={styles.logoutButtonText}>{t('logout', 'Log Out Session')}</Text>
+        <Text style={styles.logoutButtonText}>{t('logoutSession', 'Log Out Session')}</Text>
       </TouchableOpacity>
 
       {/* About Modal */}
@@ -2377,6 +2403,7 @@ function NotificationsScreen() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { posts, loadComments, addComment, reactToPost } = usePosts();
   const { currentUser } = useAuth();
+  const { t, currentLanguage, translateText } = useLanguage();
 
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -2416,16 +2443,16 @@ function NotificationsScreen() {
   return (
     <View style={styles.feedContainer}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E1DCDB' }}>
-        <Text style={styles.screenTitle}>Notification Center ({unreadCount})</Text>
+        <Text style={styles.screenTitle}>{t('notificationCenter', 'Notification Center')} ({unreadCount})</Text>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={markAllAsRead} style={[styles.commentSendButton, { paddingHorizontal: 10, paddingVertical: 4, height: 'auto' }]}>
-            <Text style={[styles.commentSendText, { fontSize: 11 }]}>Mark all read</Text>
+            <Text style={[styles.commentSendText, { fontSize: 11 }]}>{t('markAllRead', 'Mark all read')}</Text>
           </TouchableOpacity>
         )}
       </View>
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No notifications yet.</Text>
+          <Text style={styles.emptyText}>{t('noNotifications', 'No notifications yet.')}</Text>
         </View>
       ) : (
         <FlatList
@@ -2472,7 +2499,7 @@ function NotificationsScreen() {
                       <View style={{ flex: 1, padding: 10 }}>
                         {targetPost.title ? (
                           <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2D1D15', marginBottom: 2 }}>
-                            {targetPost.title}
+                            {translateText(targetPost.originalTitle || targetPost.title, currentLanguage)}
                           </Text>
                         ) : null}
                         <Text numberOfLines={2} style={{ fontSize: 11, color: '#666', lineHeight: 15 }}>
@@ -2553,15 +2580,16 @@ function NotificationsScreen() {
 function SavedPostsScreen({ onNavigateToChat: _onNavigateToChat }: { onNavigateToChat: any }) {
   const { posts, toggleSavePost } = usePosts();
   const savedPosts = posts.filter((p: any) => p.isSaved);
+  const { t, currentLanguage, translateText } = useLanguage();
 
   return (
     <View style={styles.feedContainer}>
       <View style={{ padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E1DCDB' }}>
-        <Text style={styles.screenTitle}>Saved Bookmarks ({savedPosts.length})</Text>
+        <Text style={styles.screenTitle}>{t('savedPosts', 'Saved Posts')} ({savedPosts.length})</Text>
       </View>
       {savedPosts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No bookmarked posts yet.</Text>
+          <Text style={styles.emptyText}>{t('noSavedPosts', 'No saved posts yet.')}</Text>
         </View>
       ) : (
         <FlatList
@@ -2581,8 +2609,8 @@ function SavedPostsScreen({ onNavigateToChat: _onNavigateToChat }: { onNavigateT
                     <Text style={{ fontSize: 18 }}>⭐</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.postTitle}>{item.title}</Text>
-                <Text style={styles.postContent}>{item.content}</Text>
+                <Text style={styles.postTitle}>{translateText(item.originalTitle || item.title, currentLanguage)}</Text>
+                <Text style={styles.postContent}>{translateText(item.originalContent || item.content, currentLanguage)}</Text>
               </View>
             );
           }}
@@ -2718,7 +2746,7 @@ function MainDashboard() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Text style={{ fontSize: 20 }}>⭐</Text>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.deepPlum }}>
-                  {t('savedPosts', 'Saved Thoughts')}
+                  {t('savedPosts', 'Saved Posts')}
                 </Text>
               </View>
               <Text style={{ fontSize: 20, color: '#C8BDBA' }}>›</Text>
@@ -2742,7 +2770,7 @@ function MainDashboard() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <Text style={{ fontSize: 20 }}>👤</Text>
                 <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.deepPlum }}>
-                  {t('me', 'My Profile')}
+                  {t('me', 'Me')}
                 </Text>
               </View>
               <Text style={{ fontSize: 20, color: '#C8BDBA' }}>›</Text>
@@ -2799,8 +2827,8 @@ function MainDashboard() {
 // ── ROOT EXPORT WRAPPER ──
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <LanguageProvider>
         <NotificationProvider>
           <PostProvider>
             <ChatProvider>
@@ -2809,8 +2837,8 @@ export default function App() {
             </ChatProvider>
           </PostProvider>
         </NotificationProvider>
-      </AuthProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </AuthProvider>
   );
 }
 
