@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Modal, SafeAreaView } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Modal, SafeAreaView, FlatList } from 'react-native';
 import { InitialAvatar } from '../../components/common/InitialAvatar';
+import { PostCardItem } from '../../components/posts/PostCardItem';
+import { CommentItem } from '../../components/posts/CommentItem';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -10,12 +12,20 @@ import { styles } from '../../styles/appStyles';
 
 export function ProfileScreen() {
   const { currentUser, logout, updateProfile } = useAuth() as any;
-  const { posts, blockedUsers, blockUser, unblockUser, reports } = usePosts() as any;
+  const { posts, blockedUsers, blockUser, unblockUser, reports, reactToPost, loadComments, addComment } = usePosts() as any;
   const { currentLanguage, changeLanguage, supportedLanguages, t } = useLanguage() as any;
 
   const [bioInput, setBioInput] = useState(currentUser?.bio || '');
   const [isEditing, setIsEditing] = useState(false);
   const [langPickerVisible, setLangPickerVisible] = useState(false);
+
+  // My Posts & Comments Modal States
+  const [myPostsVisible, setMyPostsVisible] = useState(false);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+  const [commentText, setCommentText] = useState('');
+
+  const activePostForModal = posts.find((p: any) => p.id === selectedPost?.id) || selectedPost;
 
   // Info modal states
   const [aboutVisible, setAboutVisible] = useState(false);
@@ -143,10 +153,10 @@ export function ProfileScreen() {
 
       {/* Stats Row */}
       <View style={styles.statsCard}>
-        <View style={styles.statColumn}>
+        <TouchableOpacity onPress={() => setMyPostsVisible(true)} style={styles.statColumn}>
           <Text style={styles.statNumber}>{ownPosts.length}</Text>
-          <Text style={styles.statLabel}>{t('thoughts', 'Thoughts')}</Text>
-        </View>
+          <Text style={styles.statLabel}>{t('thoughts', 'Thoughts')} ↗</Text>
+        </TouchableOpacity>
         <View style={styles.statColumn}>
           <Text style={styles.statNumber}>{reactionsReceived}</Text>
           <Text style={styles.statLabel}>{t('reactions', 'Reactions')}</Text>
@@ -278,6 +288,29 @@ export function ProfileScreen() {
         <View style={styles.bioHeaderRow}>
           <Text style={styles.bioTitle}>{t('settingsAndPreferences', 'Settings & Preferences')}</Text>
         </View>
+
+        {/* My Thoughts (My Posts) Item */}
+        <TouchableOpacity
+          onPress={() => setMyPostsVisible(true)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: '#F0ECEB',
+          }}
+        >
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15' }}>
+              ✍️ {t('myThoughts', 'My Thoughts')}
+            </Text>
+            <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2 }}>
+              {t('myThoughtsDesc', 'View, review, or delete the thoughts you have published.')}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 16, color: '#CEC7C5' }}>▶</Text>
+        </TouchableOpacity>
 
         {/* Account Settings Item */}
         <TouchableOpacity
@@ -1819,6 +1852,120 @@ export function ProfileScreen() {
           );
         })()}
       </Modal>
+
+      {/* My Thoughts Modal (My Posts Screen equivalent) */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={myPostsVisible}
+        onRequestClose={() => setMyPostsVisible(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('myThoughts', 'My Thoughts')}</Text>
+              <TouchableOpacity onPress={() => setMyPostsVisible(false)} style={styles.modalCloseButton}>
+                <Text style={styles.modalCloseText}>✖</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ flex: 1, backgroundColor: '#F8F5F4' }}>
+              {ownPosts.length === 0 ? (
+                <View style={{ flex: 1, padding: 32, alignItems: 'center', justifyContent: 'center', marginTop: 60 }}>
+                  <Text style={{ fontSize: 48, marginBottom: 16 }}>✍️</Text>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2D1D15', textAlign: 'center' }}>
+                    No Thoughts Published Yet
+                  </Text>
+                  <Text style={{ fontSize: 12.5, color: '#8C8385', textAlign: 'center', marginTop: 8, lineHeight: 18 }}>
+                    Share your first thought by tapping the "+" button in the feed navigation footer!
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ paddingVertical: 8 }}>
+                  {ownPosts.map((post: any) => (
+                    <PostCardItem
+                      key={post.id}
+                      item={post}
+                      currentUser={currentUser}
+                      handlePostReact={reactToPost}
+                      onNavigateToChat={() => {}}
+                      setActiveReportPost={() => {}}
+                      setReportModalVisible={() => {}}
+                      onOpenComments={async (selectedPostItem: any) => {
+                        setSelectedPost(selectedPostItem);
+                        setCommentModalVisible(true);
+                        const comments = await loadComments(selectedPostItem.id);
+                        setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
+                      }}
+                    />
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Discussion comments Modal */}
+      {activePostForModal && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={commentModalVisible}
+          onRequestClose={() => setCommentModalVisible(false)}
+        >
+          <SafeAreaView style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Comments ({activePostForModal.comments?.length || 0})</Text>
+                <TouchableOpacity onPress={() => setCommentModalVisible(false)} style={styles.modalCloseButton}>
+                  <Text style={styles.modalCloseText}>✖</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Selected post reference */}
+              <View style={styles.modalPostBrief}>
+                <Text style={styles.modalPostUser}>{activePostForModal.username}</Text>
+                <Text style={styles.modalPostText} numberOfLines={2}>{activePostForModal.content}</Text>
+              </View>
+
+              {/* Comment list */}
+              <FlatList
+                data={activePostForModal.comments}
+                keyExtractor={c => c.id}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16 }}
+                renderItem={({ item: c }) => (
+                  <CommentItem comment={c} postId={activePostForModal.id} currentUser={currentUser} />
+                )}
+              />
+
+              {/* Add comment drawer bar */}
+              <View style={styles.commentComposerBar}>
+                <TextInput
+                  placeholder="Share a thoughtful reply..."
+                  placeholderTextColor={COLORS.zorba}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  style={styles.commentComposerInput}
+                />
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!commentText.trim()) return;
+                    await addComment(activePostForModal.id, commentText.trim(), currentUser);
+                    setCommentText('');
+                    const comments = await loadComments(activePostForModal.id);
+                    setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
+                  }}
+                  style={styles.commentSendButton}
+                >
+                  <Text style={styles.commentSendText}>Send</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
