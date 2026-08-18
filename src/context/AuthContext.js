@@ -24,9 +24,9 @@ export function AuthProvider({ children }) {
             const updatedUser = {
               ...parsedUser,
               profile,
-              username: profile.username ? `@${profile.username}` : parsedUser.username,
+              username: profile.username ? (profile.username.startsWith('@') ? profile.username : `@${profile.username}`) : (parsedUser.username ? (parsedUser.username.startsWith('@') ? parsedUser.username : `@${parsedUser.username}`) : ''),
               fullName: profile.fullName || parsedUser.fullName,
-              avatarInitials: (profile.fullName || parsedUser.fullName).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+              avatarInitials: (profile.fullName || parsedUser.fullName || profile.username || parsedUser.username || 'AN').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
               avatarColor: profile.avatar || parsedUser.avatarColor || '#6F405F',
               bio: profile.bio || parsedUser.bio || '',
             };

@@ -70,7 +70,7 @@ export const apiService = {
         email: res.data.email,
         role: res.data.role || 'ROLE_USER',
         username: `@${email.split('@')[0]}`,
-        avatarInitials: res.data.fullName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+        avatarInitials: (res.data.fullName || res.data.username || email.split('@')[0] || 'AN').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
         avatarColor: '#6F405F',
         token: res.data.token,
       };

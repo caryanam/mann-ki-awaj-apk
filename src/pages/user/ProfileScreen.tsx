@@ -106,8 +106,7 @@ export function ProfileScreen() {
     <ScrollView style={styles.profileContainer} contentContainerStyle={{ paddingBottom: 96 }}>
       <View style={styles.profileHero}>
         <InitialAvatar initials={currentUser?.avatarInitials} color={currentUser?.avatarColor} size={84} />
-        <Text style={styles.profileName}>{currentUser?.fullName}</Text>
-        <Text style={styles.profileUsername}>{currentUser?.username}</Text>
+        <Text style={styles.profileName}>{currentUser?.username ? (currentUser.username.startsWith('@') ? currentUser.username : `@${currentUser.username}`) : ''}</Text>
 
         <View style={styles.avatarColorSelector}>
           <Text style={styles.selectorLabel}>{t('customizeAvatarColor', 'Customize Avatar Color:')}</Text>
