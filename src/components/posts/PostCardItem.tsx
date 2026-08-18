@@ -41,13 +41,35 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
 
   return (
     <View style={styles.postCard}>
-      <View style={styles.postHeader}>
+      <View style={[styles.postHeader, { alignItems: 'center' }]}>
         <InitialAvatar initials={item.avatarInitials} color={item.avatarColor} size={40} />
-        <View style={styles.postHeaderInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={styles.postUsername}>{item.username}</Text>
-            {isPostOwner && (
-              <TouchableOpacity onPress={() => {
+        
+        {/* Center content containing Username, Type, and Topic Pill */}
+        <View style={[styles.postHeaderInfo, { flex: 1, marginLeft: 10, justifyContent: 'center' }]}>
+          <Text style={[styles.postUsername, { fontSize: 13.5, fontWeight: '700', color: '#2D1D15' }]} numberOfLines={1}>
+            {item.username}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 6 }}>
+            <Text style={[styles.postMeta, { fontSize: 10.5, color: COLORS.zorba, marginTop: 0 }]}>{item.postType}</Text>
+            <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: COLORS.zorba }} />
+            <View style={[styles.topicBadgePill, {
+              backgroundColor: topicThemeColor + '12',
+              borderColor: topicThemeColor + '40',
+              borderWidth: 1,
+              borderRadius: 6,
+              paddingHorizontal: 6,
+              paddingVertical: 1.5,
+            }]}>
+              <Text style={{ fontSize: 9.5, fontWeight: 'bold', color: topicThemeColor }}>{item.topic}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Right content containing Save & Delete Actions */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {isPostOwner && (
+            <TouchableOpacity
+              onPress={() => {
                 Alert.alert(
                   t('delete', 'Delete'),
                   t('deletePostConfirm', 'Are you sure you want to delete this post?'),
@@ -56,20 +78,15 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
                     { text: t('delete', 'Delete'), style: 'destructive', onPress: () => deletePost(item.id) }
                   ]
                 );
-              }}>
-                <Text style={{ fontSize: 11, color: COLORS.error }}>🗑️ {t('delete', 'Delete')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <Text style={styles.postMeta}>{item.postType}</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity onPress={() => toggleSavePost(item.id)} style={{ padding: 4 }}>
+              }}
+              style={{ padding: 6 }}
+            >
+              <Text style={{ fontSize: 16, color: '#C46F76' }}>🗑️</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => toggleSavePost(item.id)} style={{ padding: 6 }}>
             <Text style={{ fontSize: 18 }}>{item.isSaved ? '⭐' : '☆'}</Text>
           </TouchableOpacity>
-          <View style={[styles.topicBadgePill, { backgroundColor: topicThemeColor + '1E', borderColor: topicThemeColor }]}>
-            <Text style={[styles.topicBadgeText, { color: topicThemeColor }]}>{item.topic}</Text>
-          </View>
         </View>
       </View>
 
