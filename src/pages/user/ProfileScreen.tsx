@@ -855,18 +855,18 @@ export function ProfileScreen() {
                           <View style={{ flexDirection: 'row', gap: 10 }}>
                             <TouchableOpacity
                               onPress={handleVerifyMobileOtp}
-                              style={[styles.primaryButton, { flex: 1, paddingVertical: 10 }]}
+                              style={[styles.primaryButton, { flex: 1, height: 'auto', minHeight: 48, paddingVertical: 10, justifyContent: 'center' }]}
                               disabled={verifyingMobile}
                             >
-                              <Text style={styles.primaryButtonText}>
-                                {verifyingMobile ? 'Verifying...' : 'Verify & Update Mobile'}
+                              <Text style={[styles.primaryButtonText, { textAlign: 'center', fontSize: 13.5 }]}>
+                                {verifyingMobile ? 'Verifying...' : 'Verify & Update'}
                               </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => { setIsMobileOtpSent(false); setMobileOtpInput(''); }}
-                              style={[styles.logoutButton, { flex: 1, marginTop: 0, paddingVertical: 10, borderColor: '#CEC7C5' }]}
+                              style={[styles.logoutButton, { flex: 1, marginTop: 0, height: 'auto', minHeight: 48, paddingVertical: 10, borderColor: '#CEC7C5', justifyContent: 'center' }]}
                             >
-                              <Text style={[styles.logoutButtonText, { color: '#5C5254' }]}>Cancel</Text>
+                              <Text style={[styles.logoutButtonText, { color: '#5C5254', textAlign: 'center', fontSize: 13.5 }]}>Cancel</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -972,18 +972,18 @@ export function ProfileScreen() {
                           <View style={{ flexDirection: 'row', gap: 10 }}>
                             <TouchableOpacity
                               onPress={handleVerifyEmailOtp}
-                              style={[styles.primaryButton, { flex: 1, paddingVertical: 10 }]}
+                              style={[styles.primaryButton, { flex: 1, height: 'auto', minHeight: 48, paddingVertical: 10, justifyContent: 'center' }]}
                               disabled={verifyingEmail}
                             >
-                              <Text style={styles.primaryButtonText}>
-                                {verifyingEmail ? 'Verifying...' : 'Verify & Update Email'}
+                              <Text style={[styles.primaryButtonText, { textAlign: 'center', fontSize: 13.5 }]}>
+                                {verifyingEmail ? 'Verifying...' : 'Verify & Update'}
                               </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => { setIsEmailOtpSent(false); setEmailOtpInput(''); }}
-                              style={[styles.logoutButton, { flex: 1, marginTop: 0, paddingVertical: 10, borderColor: '#CEC7C5' }]}
+                              style={[styles.logoutButton, { flex: 1, marginTop: 0, height: 'auto', minHeight: 48, paddingVertical: 10, borderColor: '#CEC7C5', justifyContent: 'center' }]}
                             >
-                              <Text style={[styles.logoutButtonText, { color: '#5C5254' }]}>Cancel</Text>
+                              <Text style={[styles.logoutButtonText, { color: '#5C5254', textAlign: 'center', fontSize: 13.5 }]}>Cancel</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
