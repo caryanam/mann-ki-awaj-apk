@@ -16,27 +16,69 @@ export function PostProvider({ children }) {
   const { currentLanguage } = useLanguage();
 
   const refreshPosts = async () => {
-    const backendPosts = await apiService.getPosts();
-    if (backendPosts && backendPosts.length > 0) {
-      setPosts(backendPosts);
+    try {
+      const [backendPosts, savedPosts] = await Promise.all([
+        apiService.getPosts(),
+        currentUser ? apiService.getSavedPosts() : Promise.resolve([])
+      ]);
+
+      const merged = mergeSavedPosts(backendPosts || [], savedPosts || []);
+      if (merged.length > 0) {
+        setPosts(merged);
+      }
+    } catch (err) {
+      console.warn('[PostContext] Failed to refresh posts:', err.message);
     }
+  };
+
+  const mergeSavedPosts = (feedPosts, savedPosts) => {
+    const postMap = new Map();
+    feedPosts.forEach(p => {
+      postMap.set(String(p.id), { ...p, isSaved: false });
+    });
+
+    savedPosts.forEach(sp => {
+      const spId = String(sp.id);
+      if (postMap.has(spId)) {
+        postMap.get(spId).isSaved = true;
+      } else {
+        postMap.set(spId, { ...sp, isSaved: true });
+      }
+    });
+
+    return Array.from(postMap.values());
   };
 
   // Fetch posts from backend on mount or user change
   useEffect(() => {
     async function loadData() {
-      const backendPosts = await apiService.getPosts();
-      if (backendPosts && backendPosts.length > 0) {
-        setPosts(backendPosts);
-      }
+      try {
+        const [backendPosts, savedPosts] = await Promise.all([
+          apiService.getPosts(),
+          currentUser ? apiService.getSavedPosts() : Promise.resolve([])
+        ]);
 
-      if (currentUser && currentUser.role === 'ROLE_ADMIN') {
-        const backendReports = await apiService.getReports();
-        if (backendReports && backendReports.length > 0) {
-          setReports(backendReports);
+        const merged = mergeSavedPosts(backendPosts || [], savedPosts || []);
+        if (merged.length > 0) {
+          setPosts(merged);
         }
-      } else {
-        setReports([]);
+
+        if (currentUser && (currentUser.role === 'ROLE_ADMIN' || currentUser.role === 'ADMIN')) {
+          const backendReports = await apiService.getReports();
+          if (backendReports && backendReports.length > 0) {
+            setReports(backendReports);
+          }
+        } else {
+          setReports([]);
+        }
+      } catch (err) {
+        console.warn('[PostContext] Failed to load initial post data:', err.message);
+        try {
+          const backendPosts = await apiService.getPosts();
+          if (backendPosts && backendPosts.length > 0) {
+            setPosts(backendPosts.map(p => ({ ...p, isSaved: false })));
+          }
+        } catch (e) {}
       }
     }
     loadData();
@@ -82,6 +124,13 @@ export function PostProvider({ children }) {
     setBlockedUsers(prev => [...prev, username]);
     setPosts(prev =>
       prev.map(p => (p.username === username ? { ...p, hidden: true } : p))
+    );
+  };
+
+  const unblockUser = (username) => {
+    setBlockedUsers(prev => prev.filter(u => u !== username));
+    setPosts(prev =>
+      prev.map(p => (p.username === username ? { ...p, hidden: false } : p))
     );
   };
 
@@ -436,6 +485,7 @@ export function PostProvider({ children }) {
         deletePost,
         hidePost,
         blockUser,
+        unblockUser,
         toggleSavePost,
         reactToPost,
         loadComments,

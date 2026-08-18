@@ -13,6 +13,7 @@
     "@react-native-async-storage/async-storage": "1.24.0",
     "react": "19.0.0",
     "react-native": "0.79.6",
+    "react-native-audio-recorder-player": "^3.6.8",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {

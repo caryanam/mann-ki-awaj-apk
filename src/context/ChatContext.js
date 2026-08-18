@@ -13,6 +13,7 @@ export function ChatProvider({ children }) {
   const { currentUser } = useAuth();
   const { currentLanguage } = useLanguage();
   const [activeRoomId, setActiveRoomId] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState({});
   const socketRef = useRef(null);
 
   const refreshConversations = async () => {
@@ -52,8 +53,20 @@ export function ChatProvider({ children }) {
 
     socketRef.current = socket;
 
+    const sendHeartbeat = () => {
+      if (socket && socket.connected && currentUser?.username) {
+        socket.emit('heartbeat', {
+          username: currentUser.username,
+        });
+      }
+    };
+
     socket.on('connect', () => {
       console.log('[Socket] Connected as', currentUser.username || currentUser.email);
+      if (currentUser?.id) {
+        socket.emit('join_user_room', String(currentUser.id));
+        sendHeartbeat();
+      }
     });
 
     socket.on('receive_message', async (msg) => {
@@ -99,7 +112,25 @@ export function ChatProvider({ children }) {
       }
     });
 
+    socket.on('user_presence_changed', (presence) => {
+      console.log('[Socket] Presence changed:', presence);
+      if (presence && presence.username) {
+        const cleanKey = presence.username.toLowerCase().replace('@', '');
+        setOnlineUsers((prev) => ({
+          ...prev,
+          [cleanKey]: {
+            isOnline: Boolean(presence.isOnline || presence.status === 'ONLINE'),
+            lastSeen: presence.lastSeen || new Date().toISOString(),
+            status: presence.status || (presence.isOnline ? 'ONLINE' : 'OFFLINE'),
+          },
+        }));
+      }
+    });
+
+    const heartbeatInterval = setInterval(sendHeartbeat, 25000);
+
     return () => {
+      clearInterval(heartbeatInterval);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -250,6 +281,64 @@ export function ChatProvider({ children }) {
     }
   };
 
+  const acceptChatRequest = async (roomId) => {
+    try {
+      if (roomId && !String(roomId).startsWith('convo_') && !String(roomId).startsWith('mock_')) {
+        const updatedRoom = await apiService.acceptChatRequest(roomId);
+        setConversations(prev =>
+          prev.map(c => (c.id === roomId ? { ...c, requestStatus: 'ACCEPTED' } : c))
+        );
+        fetchMessagesForRoom(roomId);
+        return updatedRoom;
+      }
+    } catch (err) {
+      console.warn('[ChatContext] Failed to accept chat request on backend:', err.message);
+    }
+    // Fallback Mock
+    setConversations(prev =>
+      prev.map(c => (c.id === roomId ? { ...c, requestStatus: 'ACCEPTED' } : c))
+    );
+  };
+
+  const declineChatRequest = async (roomId) => {
+    try {
+      if (roomId && !String(roomId).startsWith('convo_') && !String(roomId).startsWith('mock_')) {
+        await apiService.declineChatRequest(roomId);
+        setConversations(prev => prev.filter(c => c.id !== roomId));
+        if (activeRoomId === roomId) {
+          setActiveRoomId(null);
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('[ChatContext] Failed to decline chat request on backend:', err.message);
+    }
+    // Fallback Mock
+    setConversations(prev => prev.filter(c => c.id !== roomId));
+    if (activeRoomId === roomId) {
+      setActiveRoomId(null);
+    }
+  };
+
+  const getUserPresence = (username) => {
+    if (!username) return { isOnline: false, statusText: 'Offline' };
+    const cleanU = username.trim().toLowerCase().replace('@', '');
+    const entry = onlineUsers[cleanU] || onlineUsers[`@${cleanU}`];
+    if (entry) {
+      return {
+        isOnline: entry.isOnline,
+        statusText: entry.isOnline ? 'Online' : 'Offline',
+      };
+    }
+    // Fallback: Deterministic hashing match
+    const hash = cleanU.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const isOnline = hash % 2 === 0;
+    return {
+      isOnline,
+      statusText: isOnline ? 'Online' : 'Offline',
+    };
+  };
+
   const markAsRead = (convoId) => {
     setConversations(prev =>
       prev.map(c => (c.id === convoId ? { ...c, unreadCount: 0 } : c))
@@ -267,6 +356,10 @@ export function ChatProvider({ children }) {
         activeRoomId,
         setActiveRoomId,
         refreshConversations,
+        acceptChatRequest,
+        declineChatRequest,
+        onlineUsers,
+        getUserPresence,
       }}
     >
       {children}

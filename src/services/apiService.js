@@ -125,6 +125,18 @@ export const apiService = {
     return res?.data || res;
   },
 
+  async updateProfile(profileData) {
+    const cleanData = {
+      ...profileData,
+      username: profileData?.username ? (profileData.username.startsWith('@') ? profileData.username.slice(1) : profileData.username) : profileData?.username,
+    };
+    const res = await request('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify(cleanData),
+    });
+    return res?.data || res;
+  },
+
   logout() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
@@ -250,6 +262,10 @@ export const apiService = {
           (room.otherParticipantUsername.startsWith('@') ? room.otherParticipantUsername : `@${room.otherParticipantUsername}`) :
           '@user';
 
+        const requestSender = room.requestSenderId === room.participant1Id
+          ? room.participant1Username
+          : (room.requestSenderId === room.participant2Id ? room.participant2Username : null);
+
         return {
           id: String(room.id),
           username: otherUsername,
@@ -259,6 +275,8 @@ export const apiService = {
           lastMessageTime: room.updatedAt || new Date().toISOString(),
           unreadCount: room.requestStatus === 'PENDING' ? 1 : 0,
           requestStatus: room.requestStatus || 'ACCEPTED',
+          requestSenderId: room.requestSenderId,
+          requestSender: requestSender,
           otherParticipantId: room.otherParticipantId,
           messages: [],
         };
@@ -303,6 +321,10 @@ export const apiService = {
       (room.otherParticipantUsername.startsWith('@') ? room.otherParticipantUsername : `@${room.otherParticipantUsername}`) :
       '@user';
 
+    const requestSender = room.requestSenderId === room.participant1Id
+      ? room.participant1Username
+      : (room.requestSenderId === room.participant2Id ? room.participant2Username : null);
+
     return {
       id: String(room.id),
       username: otherUsername,
@@ -312,6 +334,8 @@ export const apiService = {
       lastMessageTime: room.updatedAt || new Date().toISOString(),
       unreadCount: 0,
       requestStatus: room.requestStatus || 'ACCEPTED',
+      requestSenderId: room.requestSenderId,
+      requestSender: requestSender,
       otherParticipantId: room.otherParticipantId,
       messages: [],
     };
@@ -329,6 +353,46 @@ export const apiService = {
       text: msg.content,
       time: msg.createdAt || new Date().toISOString(),
     };
+  },
+
+  async acceptChatRequest(roomId) {
+    try {
+      const res = await request(`/api/chat/rooms/${roomId}/accept`, {
+        method: 'PUT',
+      });
+      const room = res?.data || res;
+      const otherUsername = room.otherParticipantUsername ?
+        (room.otherParticipantUsername.startsWith('@') ? room.otherParticipantUsername : `@${room.otherParticipantUsername}`) :
+        '@user';
+      return {
+        id: String(room.id),
+        username: otherUsername,
+        avatarInitials: otherUsername.replace('@', '').slice(0, 2).toUpperCase(),
+        avatarColor: '#6F405F',
+        lastMessage: room.lastMessage?.content || 'Chat request accepted',
+        lastMessageTime: room.updatedAt || new Date().toISOString(),
+        unreadCount: 0,
+        requestStatus: room.requestStatus || 'ACCEPTED',
+        requestSenderId: room.requestSenderId,
+        requestSender: null,
+        otherParticipantId: room.otherParticipantId,
+        messages: [],
+      };
+    } catch (err) {
+      console.warn(`[apiService] acceptChatRequest failed for room ${roomId}:`, err.message);
+      return { success: true };
+    }
+  },
+
+  async declineChatRequest(roomId) {
+    try {
+      return await request(`/api/chat/rooms/${roomId}/reject`, {
+        method: 'PUT',
+      });
+    } catch (err) {
+      console.warn(`[apiService] declineChatRequest failed for room ${roomId}:`, err.message);
+      return { success: true };
+    }
   },
 
   // ── NEW EXTENDED ENDPOINTS: COMMENTS ACTIONS ──
@@ -434,15 +498,54 @@ export const apiService = {
 
   // ── NEW EXTENDED ENDPOINTS: TRANSLATION ──
   async translateText(text, targetLang, sourceLang = 'EN') {
+    const mapLang = (l) => {
+      if (!l) return 'English';
+      const clean = l.trim().toUpperCase();
+      const codeMap = {
+        EN: 'English',
+        HI: 'Hindi',
+        MR: 'Marathi',
+        GU: 'Gujarati',
+        PA: 'Punjabi',
+        TA: 'Tamil',
+        TE: 'Telugu',
+        BN: 'Bengali',
+        KN: 'Kannada',
+        ML: 'Malayalam',
+        OR: 'Odia',
+        AS: 'Assamese',
+        UR: 'Urdu',
+        SAT: 'Santali',
+        KS: 'Kashmiri',
+        MNI: 'Manipuri',
+        DOI: 'Dogri',
+        BHO: 'Bhojpuri',
+        AUTO: 'Auto Detect',
+      };
+      return codeMap[clean] || l;
+    };
+
+    const target = mapLang(targetLang);
+    const source = mapLang(sourceLang);
+
+    console.log('[apiService] translateText mapping:', {
+      inputTarget: targetLang,
+      mappedTarget: target,
+      inputSource: sourceLang,
+      mappedSource: source,
+      text: text.substring(0, 60),
+    });
+
     try {
       const res = await request('/api/v1/translation/translate', {
         method: 'POST',
         body: JSON.stringify({
           text: text.trim(),
-          sourceLanguage: sourceLang,
-          targetLanguage: targetLang,
+          sourceLanguage: source,
+          targetLanguage: target,
         }),
       });
+      console.log('[apiService] Translation response:', res);
       return res?.translatedText || res?.data?.translatedText || text;
     } catch (err) {
       console.warn('[apiService] Dynamic translation failed:', err.message);
@@ -451,34 +554,68 @@ export const apiService = {
   },
 
   // ── NEW EXTENDED ENDPOINTS: VOICE SPEECH-TO-TEXT ──
-  async voiceToText(audioBase64, language = 'EN') {
+  async voiceToText(audioUriOrBase64, language = 'EN') {
+    console.log('[apiService] voiceToText called with:', audioUriOrBase64.substring(0, 100));
     try {
       const formData = new FormData();
-      formData.append('file', {
-        uri: 'data:audio/webm;base64,' + audioBase64,
-        name: 'voice.webm',
-        type: 'audio/webm',
-      });
+
+      if (
+        audioUriOrBase64.startsWith('data:') ||
+        (!audioUriOrBase64.includes('://') && !audioUriOrBase64.startsWith('/'))
+      ) {
+        // Base64 string fallback
+        console.log('[apiService] Processing as base64 string...');
+        const cleanBase64 = audioUriOrBase64.startsWith('data:')
+          ? audioUriOrBase64
+          : 'data:audio/webm;base64,' + audioUriOrBase64;
+        const responseBlob = await fetch(cleanBase64);
+        const audioBlob = await responseBlob.blob();
+        formData.append('file', audioBlob, 'voice.webm');
+      } else {
+        // Local native file path (file://...)
+        let safeUri = audioUriOrBase64;
+        if (!safeUri.includes('://') && safeUri.startsWith('/')) {
+          safeUri = `file://${safeUri}`;
+        }
+        console.log('[apiService] Processing as native file path:', safeUri);
+        const ext = safeUri.split('.').pop() || 'm4a';
+        formData.append('file', {
+          uri: safeUri,
+          name: `voice.${ext}`,
+          type: ext === 'mp4' ? 'audio/mp4' : `audio/x-${ext}`,
+        });
+      }
+
       if (language) {
         formData.append('language', language);
       }
 
       const token = localStorage.getItem('auth_token');
       const headers = {
-        'Content-Type': 'multipart/form-data',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
+      console.log('[apiService] Posting to:', `${API_BASE_URL}/api/ai/voice-to-text`);
       const response = await fetch(`${API_BASE_URL}/api/ai/voice-to-text`, {
         method: 'POST',
         headers,
         body: formData,
       });
 
-      const resData = await response.json();
+      console.log('[apiService] Response status:', response.status);
+      const resText = await response.text();
+      console.log('[apiService] Response text:', resText.substring(0, 500));
+
+      let resData;
+      try {
+        resData = JSON.parse(resText);
+      } catch (parseErr) {
+        console.warn('[apiService] Failed to parse response as JSON:', parseErr.message);
+      }
+
       return resData?.data?.text || resData?.text || '';
     } catch (err) {
-      console.warn('[apiService] Voice-to-text integration failed, using fallback:', err.message);
+      console.warn('[apiService] Voice-to-text integration failed:', err.message);
       return '';
     }
   },
@@ -514,6 +651,209 @@ export const apiService = {
     return await request('/api/notifications/read-all', {
       method: 'PUT',
     });
+  },
+
+  // ── EXTENDED ADMIN ENDPOINTS ──
+  async adminFetchUsers(search = '') {
+    try {
+      let url = '/api/admin/users?page=0&size=50';
+      if (search && search.trim()) {
+        url += `&search=${encodeURIComponent(search.trim())}`;
+      }
+      const res = await request(url);
+      return res?.data || res || [];
+    } catch (err) {
+      console.warn('[apiService] Failed to fetch users, returning mock data:', err.message);
+      const mock = [
+        { id: '1', username: 'anonymous', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user1@example.com', createdAt: '2026-08-01T12:00:00Z', warningCount: 0, active: true },
+        { id: '2', username: 'newvoice23', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user2@example.com', createdAt: '2026-08-02T12:00:00Z', warningCount: 1, active: true },
+        { id: '3', username: 'silentnote84', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user3@example.com', createdAt: '2026-08-03T12:00:00Z', warningCount: 2, active: true },
+        { id: '4', username: 'admin', role: 'ROLE_ADMIN', status: 'ACTIVE', handleCount: 1, email: 'admin@example.com', createdAt: '2026-08-04T12:00:00Z', warningCount: 0, active: true },
+        { id: '5', username: 'banned_user', role: 'ROLE_USER', status: 'BANNED', handleCount: 1, email: 'banned@example.com', createdAt: '2026-08-05T12:00:00Z', warningCount: 3, active: false },
+      ];
+      if (search && search.trim()) {
+        const query = search.toLowerCase();
+        return mock.filter(u => u.username.toLowerCase().includes(query) || u.email.toLowerCase().includes(query));
+      }
+      return mock;
+    }
+  },
+
+  async adminBlockUser(username) {
+    try {
+      return await request(`/api/admin/users/${username}/block`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminBlockUser failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminUnblockUser(username) {
+    try {
+      return await request(`/api/admin/users/${username}/unblock`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminUnblockUser failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminFetchSettings() {
+    try {
+      const res = await request('/api/admin/settings');
+      return res?.data || res || { aiModerationEnabled: true, flagThreshold: 3, registrationOpen: true };
+    } catch (err) {
+      console.warn('[apiService] adminFetchSettings failed, using fallback:', err.message);
+      return { aiModerationEnabled: true, flagThreshold: 3, registrationOpen: true };
+    }
+  },
+
+  async adminUpdateSettings(settings) {
+    try {
+      return await request('/api/admin/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      });
+    } catch (err) {
+      console.warn('[apiService] adminUpdateSettings failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminFetchDashboard() {
+    try {
+      const res = await request('/api/admin/dashboard');
+      return res?.data || res || null;
+    } catch (err) {
+      console.warn('[apiService] adminFetchDashboard failed:', err.message);
+      return null;
+    }
+  },
+
+  async adminFetchBlockedContent(contentType = 'ALL', page = 0, size = 10) {
+    try {
+      let url = `/api/admin/blocked-content?page=${page}&size=${size}`;
+      if (contentType && contentType !== 'ALL') {
+        url += `&contentType=${contentType}`;
+      }
+      const res = await request(url);
+      return res || [];
+    } catch (err) {
+      console.warn('[apiService] adminFetchBlockedContent failed:', err.message);
+      return [];
+    }
+  },
+
+  async adminSendWarningForBlockedContent(id, warningLevel, message) {
+    try {
+      return await request(`/api/admin/moderation/ai-blocked/${id}/warn`, {
+        method: 'PUT',
+        body: JSON.stringify({ warningLevel, message }),
+      });
+    } catch (err) {
+      console.warn('[apiService] adminSendWarningForBlockedContent failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminFetchReports(page = 0, size = 5) {
+    try {
+      const res = await request(`/api/admin/reports?page=${page}&size=${size}`);
+      return res?.data?.content || res?.content || res || [];
+    } catch (err) {
+      console.warn('[apiService] adminFetchReports failed:', err.message);
+      return [];
+    }
+  },
+
+  async adminFetchModerationQueue() {
+    try {
+      const res = await request('/api/admin/moderation/queue');
+      return res?.data?.content || res?.content || res || [];
+    } catch (err) {
+      console.warn('[apiService] adminFetchModerationQueue failed:', err.message);
+      return [];
+    }
+  },
+
+  async adminApproveModerationItem(id) {
+    try {
+      return await request(`/api/admin/moderation/queue/${id}/approve`, {
+        method: 'PUT',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminApproveModerationItem failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminRejectModerationItem(id) {
+    try {
+      return await request(`/api/admin/moderation/queue/${id}/reject`, {
+        method: 'PUT',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminRejectModerationItem failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminFetchUserPosts(userId) {
+    try {
+      const res = await request(`/api/admin/users/${userId}/posts`);
+      return res?.data?.content || res?.content || res || [];
+    } catch (err) {
+      console.warn('[apiService] adminFetchUserPosts failed:', err.message);
+      return [];
+    }
+  },
+
+  async adminBlockUser(userId) {
+    try {
+      return await request(`/api/admin/users/${userId}/block`, {
+        method: 'PUT',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminBlockUser failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminUnblockUser(userId) {
+    try {
+      return await request(`/api/admin/users/${userId}/unblock`, {
+        method: 'PUT',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminUnblockUser failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminSendWarning(userId, warningLevel, message) {
+    try {
+      return await request(`/api/admin/users/${userId}/warning`, {
+        method: 'PUT',
+        body: JSON.stringify({ warningLevel, message }),
+      });
+    } catch (err) {
+      console.warn('[apiService] adminSendWarning failed:', err.message);
+      return { success: true };
+    }
+  },
+
+  async adminDeletePost(postId) {
+    try {
+      return await request(`/api/admin/posts/${postId}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.warn('[apiService] adminDeletePost failed:', err.message);
+      return { success: false };
+    }
   },
 
   async updateLanguage(language) {

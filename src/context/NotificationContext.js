@@ -27,6 +27,9 @@ export function NotificationProvider({ children }) {
 
   useEffect(() => {
     refreshNotifications();
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
     const timer = setInterval(() => {
       refreshNotifications();
     }, 6000);

@@ -42,7 +42,7 @@ export function LanguageProvider({ children }) {
       }
     }
     syncLanguage();
-  }, [currentUser]);
+  }, [currentUser, currentLanguage]);
 
   const changeLanguage = async (langCode) => {
     if (!langCode || langCode === currentLanguage) return;
