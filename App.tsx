@@ -46,6 +46,7 @@ import {
 import { AuthScreen } from './src/pages/auth/AuthScreen';
 import { ProfileSetupScreen } from './src/pages/auth/ProfileSetupScreen';
 import { HomeFeedScreen } from './src/pages/user/HomeFeedScreen';
+import { ExploreScreen } from './src/pages/user/ExploreScreen';
 import { CreatePostScreen } from './src/pages/user/CreatePostScreen';
 import { ChatScreen } from './src/pages/user/ChatScreen';
 import { NotificationsScreen } from './src/pages/user/NotificationsScreen';
@@ -317,6 +318,20 @@ function MainDashboard() {
                       </Text>
                     </TouchableOpacity>
 
+                    {/* Explore Button */}
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Explore' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
+                      onPress={() => { setActiveTab('Explore'); setSidebarVisible(false); }}
+                    >
+                      {activeTab === 'Explore' && (
+                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
+                      )}
+                      <Text style={{ fontSize: 18, width: 18, textAlign: 'center', color: activeTab === 'Explore' ? '#6F405F' : '#5C5254' }}>🧭</Text>
+                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Explore' ? 'bold' : '600', color: activeTab === 'Explore' ? '#6F405F' : '#5C5254' }}>
+                        {t('explore', 'Explore')}
+                      </Text>
+                    </TouchableOpacity>
+
                     {/* Share Button */}
                     <TouchableOpacity
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Create' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
@@ -421,7 +436,7 @@ function MainDashboard() {
             height: 56,
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: activeTab === 'Admin' ? 'space-between' : 'center',
+            justifyContent: 'space-between',
             paddingHorizontal: 16,
           }}>
             {activeTab === 'Admin' ? (
@@ -480,10 +495,56 @@ function MainDashboard() {
               </>
             ) : (
               <>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {/* Left Side: Sidebar Hamburger Menu Button */}
+                <TouchableOpacity
+                  onPress={() => setSidebarVisible(true)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <HamburgerIcon />
+                </TouchableOpacity>
+
+                {/* Center Title and Logo */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
                   <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
                   <Text style={styles.headerText}>AwaajManki</Text>
                   <Text style={styles.headerDot}>•</Text>
+                </View>
+
+                {/* Right Side: Avatar Bubble linking to Profile */}
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  justifyContent: 'center',
+                  alignItems: 'flex-end',
+                }}>
+                  {currentUser ? (
+                    <TouchableOpacity
+                      onPress={() => setActiveTab('Profile')}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: COLORS.deepPlum,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
+                        {String(currentUser?.username || 'U').replace('@', '').slice(0, 1).toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ width: 32 }} />
+                  )}
                 </View>
               </>
             )}
@@ -577,6 +638,7 @@ function MainDashboard() {
       {/* Content router */}
       <View style={{ flex: 1 }}>
         {activeTab === 'Feed' && <HomeFeedScreen onNavigateToChat={handleStartConvo} />}
+        {activeTab === 'Explore' && <ExploreScreen onNavigateToChat={handleStartConvo} />}
         {activeTab === 'Create' && <CreatePostScreen onPostCreated={() => setActiveTab('Feed')} />}
         {activeTab === 'Chat' && (
           <ChatScreen
@@ -877,6 +939,31 @@ function MainDashboard() {
             />
 
             {/* Menu Rows */}
+            {/* Explore Button */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: '#F2EDED',
+              }}
+              onPress={() => {
+                setActiveTab('Explore');
+                setChatTarget(null);
+                setMoreMenuVisible(false);
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={{ fontSize: 18, color: '#6F405F' }}>🧭</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.deepPlum }}>
+                  {t('explore', 'Explore')}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 20, color: '#C8BDBA' }}>›</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={{
                 flexDirection: 'row',

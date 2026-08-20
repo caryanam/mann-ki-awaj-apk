@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Image, TextInput, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Image, TextInput, ActivityIndicator, Platform, PermissionsAndroid, ScrollView } from 'react-native';
 import { InitialAvatar } from '../common/InitialAvatar';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
 import { apiService } from '../../services/apiService';
+import { normalizeLanguageCode } from '../../services/apiTranslationService';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
@@ -237,9 +238,17 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const displayTitle = translateText(item.originalTitle || item.title, currentLanguage);
   const displayContent = translateText(item.originalContent || item.content, currentLanguage);
+
+  const postLangCode = normalizeLanguageCode(item.language) || 'EN';
+  const isDifferentLanguage = postLangCode !== currentLanguage;
+  const hasTranslation = isDifferentLanguage && (
+    (displayTitle && displayTitle !== (item.originalTitle || item.title)) ||
+    (displayContent && displayContent !== (item.originalContent || item.content))
+  );
 
   const userReacted = item.userReaction;
   const topicColors: Record<string, string> = {
@@ -335,10 +344,10 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
   };
 
   const reactionButtons = [
-    { key: 'relate', label: 'Relate', icon: '♡', activeIcon: '❤️' },
-    { key: 'stayStrong', label: 'Support', icon: '🤝', activeIcon: '🤝' },
-    { key: 'wellSaid', label: 'Agree', icon: '👍', activeIcon: '👍' },
-    { key: 'helpful', label: 'Interesting', icon: '💡', activeIcon: '💡' },
+    { key: 'relate', label: 'relate', icon: '♡', activeIcon: '❤️' },
+    { key: 'stayStrong', label: 'support', icon: '🤝', activeIcon: '🤝' },
+    { key: 'wellSaid', label: 'agree', icon: '👍', activeIcon: '👍' },
+    { key: 'helpful', label: 'interesting', icon: '💡', activeIcon: '💡' },
   ];
 
   return (
@@ -392,8 +401,30 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
           </View>
         </View>
 
-        {/* Right content containing Save & Delete Actions */}
+        {/* Right content containing Actions */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 2 }}>
+          {/* DM Button */}
+          {item.username !== currentUser?.username && (
+            <TouchableOpacity
+              onPress={() => onNavigateToChat(item.username, item.authorId || item.userId || item.user?.id, item.avatarInitials, item.avatarColor)}
+              style={{ padding: 4 }}
+            >
+              <Text style={{ fontSize: 14 }}>✉️</Text>
+            </TouchableOpacity>
+          )}
+          {/* Flag Button */}
+          {item.username !== currentUser?.username && (
+            <TouchableOpacity
+              onPress={() => {
+                setActiveReportPost(item);
+                setReportModalVisible(true);
+              }}
+              style={{ padding: 4 }}
+            >
+              <Text style={{ fontSize: 14 }}>🏳️</Text>
+            </TouchableOpacity>
+          )}
+          {/* Delete Button */}
           {isPostOwner && (
             <TouchableOpacity
               onPress={() => {
@@ -411,6 +442,7 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
               <TrashIcon color="#C46F76" size={15} />
             </TouchableOpacity>
           )}
+          {/* Bookmark Button */}
           <TouchableOpacity onPress={() => toggleSavePost(item.id)} style={{ padding: 4 }}>
             <BookmarkIcon active={item.isSaved} color="#8C8385" size={15} />
           </TouchableOpacity>
@@ -420,8 +452,19 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
       {/* Header Separator Line */}
       <View style={{ height: 1, backgroundColor: '#F0ECEE', marginBottom: 12 }} />
 
-      <Text style={styles.postTitle}>{displayTitle}</Text>
-      <Text style={styles.postContent}>{displayContent}</Text>
+      <Text style={styles.postTitle}>{showOriginal ? (item.originalTitle || item.title) : displayTitle}</Text>
+      <Text style={styles.postContent}>{showOriginal ? (item.originalContent || item.content) : displayContent}</Text>
+
+      {hasTranslation && (
+        <TouchableOpacity
+          onPress={() => setShowOriginal(!showOriginal)}
+          style={{ alignSelf: 'flex-start', marginTop: -4, marginBottom: 8, paddingVertical: 2 }}
+        >
+          <Text style={{ fontSize: 11, color: COLORS.deepPlum, fontWeight: 'bold' }}>
+            🌐 {showOriginal ? t('showTranslation', 'Show Translation') : t('showOriginal', 'Show Original')}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {item.imageUrl ? (
         <View style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#F0ECEE' }}>
@@ -433,36 +476,39 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
       ) : null}
 
       {/* Capsule reaction and comments row */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 12, alignItems: 'center' }}>
-        {reactionButtons.map((btn) => {
-          const count = item.reactions[btn.key] || 0;
-          const isActive = userReacted === btn.key;
-          return (
-            <TouchableOpacity
-              key={btn.key}
-              onPress={() => handlePostReact(item.id, btn.key)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: isActive ? '#6F405F' : '#E8E1E5',
-                backgroundColor: isActive ? 'rgba(111, 64, 95, 0.06)' : '#FFFFFF',
-              }}
-            >
-              <Text style={{ fontSize: 13, marginRight: 4 }}>
-                {isActive ? btn.activeIcon : btn.icon}
-              </Text>
-              <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: isActive ? '#6F405F' : '#5C5254' }}>
-                {btn.label} {count > 0 ? `(${count})` : ''}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12 }}>
+        {/* Left Reactions List */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: 6 }}>
+          {reactionButtons.map((btn) => {
+            const count = item.reactions[btn.key] || 0;
+            const isActive = userReacted === btn.key;
+            return (
+              <TouchableOpacity
+                key={btn.key}
+                onPress={() => handlePostReact(item.id, btn.key)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: isActive ? '#6F405F' : '#E8E1E5',
+                  backgroundColor: isActive ? 'rgba(111, 64, 95, 0.06)' : '#FFFFFF',
+                }}
+              >
+                <Text style={{ fontSize: 13, marginRight: 4 }}>
+                  {isActive ? btn.activeIcon : btn.icon}
+                </Text>
+                <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: isActive ? '#6F405F' : '#5C5254' }}>
+                  {btn.label} {count > 0 ? `(${count})` : ''}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
-        {/* Comments Pill */}
+        {/* Right Comments Pill */}
         <TouchableOpacity
           onPress={() => onOpenComments(item)}
           style={{
@@ -473,56 +519,14 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
             borderRadius: 20,
             borderWidth: 1,
             borderColor: '#E8E1E5',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: '#F6F3F2',
           }}
         >
           <Text style={{ fontSize: 13, marginRight: 4 }}>💬</Text>
           <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: '#5C5254' }}>
-            Comments {item.commentCount > 0 ? `(${item.commentCount})` : ''}
+            {t('comments', 'Comments')} ({item.commentCount || 0})
           </Text>
         </TouchableOpacity>
-
-        {/* Chat triggers */}
-        {item.username !== currentUser?.username && (
-          <TouchableOpacity
-            onPress={() => onNavigateToChat(item.username, item.authorId || item.userId || item.user?.id, item.avatarInitials, item.avatarColor)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: '#E8E1E5',
-              backgroundColor: '#FFFFFF',
-            }}
-          >
-            <Text style={{ fontSize: 13, marginRight: 4 }}>✉️</Text>
-            <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: '#6F405F' }}>DM</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Flag / Report Trigger */}
-        {item.username !== currentUser?.username && (
-          <TouchableOpacity
-            onPress={() => {
-              setActiveReportPost(item);
-              setReportModalVisible(true);
-            }}
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: '#E8E1E5',
-              backgroundColor: '#FFFFFF',
-            }}
-          >
-            <Text style={{ fontSize: 13 }}>🏳️</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Inline Comment Input Bar */}

@@ -10,41 +10,41 @@ const LanguageContext = createContext(null);
 export function LanguageProvider({ children }) {
   const [currentLanguage, setCurrentLanguage] = useState('EN');
   const [translationCache, setTranslationCache] = useState({});
+  const [lastSyncedUserId, setLastSyncedUserId] = useState(null);
   const { currentUser, updateProfile } = useAuth();
 
-  // Sync preferred language from profile DB or Auth context reactively
+  // Sync preferred language from profile DB or Auth context reactively only on user changes
   useEffect(() => {
     async function syncLanguage() {
+      const userId = currentUser?.id || currentUser?.username || 'guest';
+      if (userId === lastSyncedUserId) return;
+
       try {
+        let preferred = null;
         if (currentUser) {
-          const preferred = currentUser.profile?.preferredLanguage || currentUser.preferredLanguage;
-          if (preferred) {
-            const langObj = SUPPORTED_LANGUAGES.find(l => l.label === preferred);
-            const normalized = langObj ? langObj.code : 'EN';
-            if (normalized !== currentLanguage) {
-              setCurrentLanguage(normalized);
-            }
-            return;
-          }
+          preferred = currentUser.profile?.preferredLanguage || currentUser.preferredLanguage;
         }
         
-        const token = localStorage.getItem('auth_token');
-        if (token && !token.startsWith('mock')) {
-          const profile = await apiService.getMyProfile();
-          if (profile?.preferredLanguage) {
-            const langObj = SUPPORTED_LANGUAGES.find(l => l.label === profile.preferredLanguage);
-            const normalized = langObj ? langObj.code : 'EN';
-            if (normalized !== currentLanguage) {
-              setCurrentLanguage(normalized);
-            }
+        if (!preferred) {
+          const token = localStorage.getItem('auth_token');
+          if (token && !token.startsWith('mock')) {
+            const profile = await apiService.getMyProfile();
+            preferred = profile?.preferredLanguage;
           }
         }
+
+        if (preferred) {
+          const langObj = SUPPORTED_LANGUAGES.find(l => l.label === preferred);
+          const normalized = langObj ? langObj.code : 'EN';
+          setCurrentLanguage(normalized);
+        }
+        setLastSyncedUserId(userId);
       } catch (err) {
-        console.warn('[LanguageContext] Failed to sync language from DB:', err.message);
+        console.warn('[LanguageContext] Failed to sync language:', err.message);
       }
     }
     syncLanguage();
-  }, [currentUser, currentLanguage]);
+  }, [currentUser]);
 
   const changeLanguage = async (langCode) => {
     if (!langCode || langCode === currentLanguage) return;

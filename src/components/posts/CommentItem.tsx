@@ -4,6 +4,7 @@ import { InitialAvatar } from '../common/InitialAvatar';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
+import { normalizeLanguageCode } from '../../services/apiTranslationService';
 import { styles } from '../../styles/appStyles';
 
 export function CommentItem({ comment: c, postId, currentUser, onNavigateToChat }: { comment: any; postId: any; currentUser: any; onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void }) {
@@ -28,8 +29,13 @@ export function CommentItem({ comment: c, postId, currentUser, onNavigateToChat 
   };
 
   const { currentLanguage, translateText } = useLanguage() as any;
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const displayContent = translateText(c.originalContent || c.content, currentLanguage);
+
+  const commentLangCode = normalizeLanguageCode(c.language) || 'EN';
+  const isDifferentLanguage = commentLangCode !== currentLanguage;
+  const hasTranslation = isDifferentLanguage && displayContent && displayContent !== (c.originalContent || c.content);
 
   const isOwner = c.username === currentUser?.username;
   const reactionCount: any = Object.values(c.reactions || {}).reduce((a: any, b: any) => a + b, 0);
@@ -104,7 +110,18 @@ export function CommentItem({ comment: c, postId, currentUser, onNavigateToChat 
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={[styles.commentContent, { fontSize: 13.5, color: '#2D1D15', marginLeft: 0 }]}>{displayContent}</Text>
+          <>
+            <Text style={[styles.commentContent, { fontSize: 13.5, color: '#2D1D15', marginLeft: 0 }]}>
+              {showOriginal ? (c.originalContent || c.content) : displayContent}
+            </Text>
+            {hasTranslation && (
+              <TouchableOpacity onPress={() => setShowOriginal(!showOriginal)} style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: 10, color: COLORS.deepPlum, fontWeight: 'bold' }}>
+                  🌐 {showOriginal ? 'Show Translation' : 'Show Original'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
 
@@ -152,7 +169,9 @@ export function CommentItem({ comment: c, postId, currentUser, onNavigateToChat 
                     </TouchableOpacity>
                   )}
                 </View>
-                <Text style={{ fontSize: 12.5, color: '#2D1D15', marginLeft: 28, marginTop: 2 }}>{r.content}</Text>
+                <Text style={{ fontSize: 12.5, color: '#2D1D15', marginLeft: 28, marginTop: 2 }}>
+                  {translateText(r.originalContent || r.content, currentLanguage)}
+                </Text>
               </View>
             );
           })}
