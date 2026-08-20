@@ -96,6 +96,8 @@ export function PostProvider({ children }) {
       topic: postData.topic || 'General',
       title: postData.title || '',
       content: postData.content || '',
+      imageUrl: apiResult?.imageUrl || postData.imageUrl || null,
+      allowComments: apiResult?.allowComments !== undefined ? apiResult.allowComments : (postData.allowComments !== undefined ? postData.allowComments : true),
       createdAt: new Date().toISOString(),
       reactions: { relate: 0, wellSaid: 0, helpful: 0, stayStrong: 0, madeMeThink: 0 },
       userReaction: null,

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, TextInput, SafeAreaView } from 'react-native';
 import { apiService } from '../../services/apiService';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { ShieldIcon, BanIcon, FlagIcon } from '../../components/common/Icons';
+import { ShieldIcon, FlagIcon } from '../../components/common/Icons';
 
 export function AdminBlockedContentScreen() {
   const [footprints, setFootprints] = useState<any[]>([]);
@@ -18,7 +18,7 @@ export function AdminBlockedContentScreen() {
   const [warningLevel, setWarningLevel] = useState('FIRST');
   const [issuingWarn, setIssuingWarn] = useState(false);
 
-  const fetchBlockedFootprints = async () => {
+  const fetchBlockedFootprints = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiService.adminFetchBlockedContent(selectedType, page, 10);
@@ -31,11 +31,11 @@ export function AdminBlockedContentScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedType, page]);
 
   useEffect(() => {
     fetchBlockedFootprints();
-  }, [selectedType, page]);
+  }, [fetchBlockedFootprints]);
 
   const handleIssueWarning = async () => {
     if (!selectedItemForWarn || !warningMessage.trim()) return;

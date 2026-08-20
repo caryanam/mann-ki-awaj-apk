@@ -15,7 +15,7 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications() as any;
   const { posts, loadComments, addComment, reactToPost } = usePosts() as any;
   const { currentUser } = useAuth() as any;
-  const { t, currentLanguage, translateText } = useLanguage() as any;
+  const { t, currentLanguage, translateText, translationCache } = useLanguage() as any;
 
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -106,6 +106,7 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
         <FlatList
           data={notifications}
           keyExtractor={item => item.id}
+          extraData={{ currentLanguage, translationCache }}
           contentContainerStyle={{ paddingBottom: 110, paddingTop: 4 }}
           renderItem={({ item }) => {
             const targetPost = posts.find((p: any) => String(p.id) === String(item.targetPostId));
@@ -267,6 +268,22 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                     {formattedDate}
                   </Text>
 
+                  {isComment && item.content && (
+                    <View style={{
+                      marginTop: 8,
+                      backgroundColor: '#FAF6F8',
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      borderLeftWidth: 3,
+                      borderLeftColor: '#6F405F',
+                    }}>
+                      <Text style={{ fontSize: 12.5, color: '#2D1D15', lineHeight: 18, fontStyle: 'italic' }}>
+                        "{item.content}"
+                      </Text>
+                    </View>
+                  )}
+
                   {targetPost && (
                     <View style={{
                       marginTop: 10,
@@ -313,27 +330,42 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                 </TouchableOpacity>
               </View>
 
-              {/* Selected post reference */}
-              <View style={{ borderBottomWidth: 1, borderBottomColor: '#E1DCDB', backgroundColor: '#FFF' }}>
-                <PostCardItem
-                  item={currentPost}
-                  currentUser={currentUser}
-                  handlePostReact={handlePostReact}
-                  onNavigateToChat={() => { }}
-                  setActiveReportPost={() => { }}
-                  setReportModalVisible={() => { }}
-                  onOpenComments={() => { }}
-                />
-              </View>
-
-              {/* Comment list */}
+              {/* Comment list with scrollable post card header */}
               <FlatList
                 data={comments}
                 keyExtractor={c => c.id}
                 style={{ flex: 1 }}
-                contentContainerStyle={{ padding: 16 }}
+                extraData={{ currentLanguage, translationCache }}
+                contentContainerStyle={{ paddingBottom: 16 }}
+                ListHeaderComponent={() => (
+                  <View style={{ borderBottomWidth: 1, borderBottomColor: '#F0ECEE', backgroundColor: '#FFFFFF', marginBottom: 16 }}>
+                    <PostCardItem
+                      item={currentPost}
+                      currentUser={currentUser}
+                      handlePostReact={handlePostReact}
+                      onNavigateToChat={() => { }}
+                      setActiveReportPost={() => { }}
+                      setReportModalVisible={() => { }}
+                      onOpenComments={() => { }}
+                      showInlineComment={false}
+                      flat={true}
+                    />
+                  </View>
+                )}
                 renderItem={({ item: c }) => (
-                  <CommentItem comment={c} postId={selectedPost.id} currentUser={currentUser} />
+                  <View style={{ paddingHorizontal: 16 }}>
+                    <CommentItem
+                      comment={c}
+                      postId={selectedPost.id}
+                      currentUser={currentUser}
+                      onNavigateToChat={(username, authorId, initials, color) => {
+                        setCommentModalVisible(false);
+                        if (onNavigateToChat) {
+                          onNavigateToChat(username, authorId, initials, color);
+                        }
+                      }}
+                    />
+                  </View>
                 )}
               />
 

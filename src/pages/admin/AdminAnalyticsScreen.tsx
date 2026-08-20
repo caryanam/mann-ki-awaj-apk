@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { apiService } from '../../services/apiService';
-import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { ShieldIcon, DocIcon, FlagIcon, ProfileIcon, BanIcon } from '../../components/common/Icons';
+import { ShieldIcon, DocIcon, FlagIcon, ProfileIcon } from '../../components/common/Icons';
 
 export function AdminAnalyticsScreen() {
   const [stats, setStats] = useState<any>(null);

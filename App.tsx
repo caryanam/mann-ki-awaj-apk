@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import { AuthProvider, useAuth as _useAuth } from './src/context/AuthContext';
-import { PostProvider, usePosts as _usePosts } from './src/context/PostContext';
+import { PostProvider } from './src/context/PostContext';
 import { ChatProvider, useChat as _useChat } from './src/context/ChatContext';
 import { NotificationProvider, useNotifications as _useNotifications } from './src/context/NotificationContext';
 import { LanguageProvider, useLanguage as _useLanguage } from './src/context/LanguageContext';
@@ -40,12 +40,11 @@ import {
   EyeIcon,
   BanIcon,
   BarChartIcon,
-  LogsIcon,
   FlagIcon,
-  SettingsIcon,
 } from './src/components/common/Icons';
 
 import { AuthScreen } from './src/pages/auth/AuthScreen';
+import { ProfileSetupScreen } from './src/pages/auth/ProfileSetupScreen';
 import { HomeFeedScreen } from './src/pages/user/HomeFeedScreen';
 import { CreatePostScreen } from './src/pages/user/CreatePostScreen';
 import { ChatScreen } from './src/pages/user/ChatScreen';
@@ -411,71 +410,86 @@ function MainDashboard() {
       </Modal>
 
       {/* Brand Header */}
-      <View style={[styles.header, { justifyContent: 'space-between', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }]}>
-        {activeTab === 'Admin' ? (
-          <>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
-              <Text style={styles.headerText}>AwaajManki</Text>
-              <Text style={[styles.headerDot, { color: COLORS.error }]}>•</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              {/* Notification Bell */}
-              <TouchableOpacity
-                onPress={() => setAdminAlertsModalVisible(true)}
-                style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-              >
-                <BellIcon color="#2D1D15" size={20} />
-                {adminBadgeCount > 0 && (
+      <SafeAreaView style={{ backgroundColor: '#FFFFFF' }}>
+        <View style={{
+          paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E1DCDB',
+          backgroundColor: '#FFFFFF',
+        }}>
+          <View style={{
+            height: 56,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: activeTab === 'Admin' ? 'space-between' : 'center',
+            paddingHorizontal: 16,
+          }}>
+            {activeTab === 'Admin' ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
+                  <Text style={styles.headerText}>AwaajManki</Text>
+                  <Text style={[styles.headerDot, { color: COLORS.error }]}>•</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  {/* Notification Bell */}
+                  <TouchableOpacity
+                    onPress={() => setAdminAlertsModalVisible(true)}
+                    style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+                  >
+                    <BellIcon color="#2D1D15" size={20} />
+                    {adminBadgeCount > 0 && (
+                      <View style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        backgroundColor: '#EF4444',
+                        borderRadius: 8,
+                        minWidth: 16,
+                        height: 16,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        paddingHorizontal: 3,
+                      }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>
+                          {adminBadgeCount}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Avatar Bubble */}
                   <View style={{
-                    position: 'absolute',
-                    top: 2,
-                    right: 2,
-                    backgroundColor: '#EF4444',
-                    borderRadius: 8,
-                    minWidth: 16,
-                    height: 16,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: '#2D1D15',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    paddingHorizontal: 3,
                   }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>
-                      {adminBadgeCount}
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
+                      {String(currentUser?.username || 'S').replace('@', '').slice(0, 1).toUpperCase()}
                     </Text>
                   </View>
-                )}
-              </TouchableOpacity>
 
-              {/* Avatar Bubble */}
-              <View style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: '#2D1D15',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
-                  {String(currentUser?.username || 'S').replace('@', '').slice(0, 1).toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Menu Hamburger */}
-              <TouchableOpacity onPress={() => setSidebarVisible(true)} style={{ paddingVertical: 10 }}>
-                <HamburgerIcon />
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
-              <Text style={styles.headerText}>AwaajManki</Text>
-              <Text style={styles.headerDot}>•</Text>
-            </View>
-          </>
-        )}
-      </View>
+                  {/* Menu Hamburger */}
+                  <TouchableOpacity onPress={() => setSidebarVisible(true)} style={{ paddingVertical: 10 }}>
+                    <HamburgerIcon />
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
+                  <Text style={styles.headerText}>AwaajManki</Text>
+                  <Text style={styles.headerDot}>•</Text>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </SafeAreaView>
 
       {/* Admin Alerts Dropdown Modal */}
       {adminAlertsModalVisible && (
@@ -573,7 +587,7 @@ function MainDashboard() {
         )}
         {activeTab === 'Notifications' && <NotificationsScreen onNavigateToChat={handleStartConvo} />}
         {activeTab === 'Saved' && <SavedPostsScreen onNavigateToChat={handleStartConvo} />}
-        {activeTab === 'Profile' && <ProfileScreen />}
+        {activeTab === 'Profile' && <ProfileScreen onNavigateToChat={handleStartConvo} />}
         {activeTab === 'Admin' && (
           activeAdminTab === 'Reports' ? (
             <AdminReportsScreen />
@@ -988,5 +1002,12 @@ function AuthWrapper() {
     );
   }
 
-  return currentUser ? <MainDashboard /> : <AuthScreen />;
+  if (currentUser) {
+    if (currentUser.hasProfile === false) {
+      return <ProfileSetupScreen />;
+    }
+    return <MainDashboard />;
+  }
+
+  return <AuthScreen />;
 }

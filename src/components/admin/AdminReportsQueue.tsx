@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, ScrollView, Text, TouchableOpacity, FlatList } from 'react-native';
-import { FlagIcon, ShieldIcon, EyeIcon } from '../common/Icons';
 import { COLORS } from '../../styles/theme';
 
 interface AdminReportsQueueProps {

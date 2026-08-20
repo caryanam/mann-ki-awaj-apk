@@ -1,12 +1,226 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Alert, Image, TextInput, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
 import { InitialAvatar } from '../common/InitialAvatar';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
+import { apiService } from '../../services/apiService';
+import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 
-export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, setActiveReportPost, setReportModalVisible, onOpenComments }: {
+const audioRecorderPlayer = new AudioRecorderPlayer();
+
+const requestAudioPermission = async () => {
+  if (Platform.OS === 'android') {
+    try {
+      const sdkVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(Platform.Version, 10);
+      if (sdkVersion < 29) {
+        const grants = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        ]);
+        return (
+          grants[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED &&
+          grants[PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE] === PermissionsAndroid.RESULTS.GRANTED
+        );
+      } else {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: 'Microphone Permission',
+            message: 'This app needs access to your microphone to record voice comments.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  }
+  return true;
+};
+
+function formatTimeAgo(dateString: string) {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    
+    const diffDays = Math.floor(diffHrs / 24);
+    return `${diffDays}d ago`;
+  } catch (e) {
+    return '';
+  }
+}
+
+// --- CUSTOM HIGH-FIDELITY VECTOR ICONS DRAWN WITH NATIVE VIEWS ---
+
+const TrashIcon = ({ color = '#C46F76', size = 15 }) => (
+  <View style={{ width: size, height: size + 2, justifyContent: 'center', alignItems: 'center' }}>
+    {/* Lid handle */}
+    <View style={{ width: size * 0.35, height: 1.8, backgroundColor: color, borderRadius: 0.5, marginBottom: 1 }} />
+    {/* Lid */}
+    <View style={{ width: size * 0.85, height: 1.8, backgroundColor: color, borderRadius: 0.8, marginBottom: 1.2 }} />
+    {/* Can body */}
+    <View style={{
+      width: size * 0.65,
+      height: size * 0.7,
+      borderWidth: 1.6,
+      borderColor: color,
+      borderTopWidth: 0,
+      borderBottomLeftRadius: 3,
+      borderBottomRightRadius: 3,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingHorizontal: 2,
+    }}>
+      {/* Ribs inside can */}
+      <View style={{ width: 1.2, height: '70%', backgroundColor: color, opacity: 0.5 }} />
+      <View style={{ width: 1.2, height: '70%', backgroundColor: color, opacity: 0.5 }} />
+    </View>
+  </View>
+);
+
+const BookmarkIcon = ({ active = false, color = '#8C8385', size = 15 }) => {
+  const iconColor = active ? '#D96C3D' : color; // Warm terracotta/yellow for saved, matching web
+  return (
+    <View style={{ width: size, height: size + 2, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Outer border shape */}
+      <View style={{
+        width: size * 0.72,
+        height: size * 0.95,
+        borderWidth: 1.6,
+        borderColor: iconColor,
+        borderBottomWidth: 0,
+        borderTopLeftRadius: 2,
+        borderTopRightRadius: 2,
+        backgroundColor: active ? iconColor : 'transparent',
+      }} />
+      {/* Bottom notched lines */}
+      <View style={{
+        flexDirection: 'row',
+        position: 'absolute',
+        bottom: 0.8,
+        width: size * 0.72,
+        justifyContent: 'space-between',
+      }}>
+        <View style={{
+          width: 0,
+          height: 0,
+          borderStyle: 'solid',
+          borderLeftWidth: 0,
+          borderRightWidth: (size * 0.72) / 2,
+          borderBottomWidth: 4,
+          borderRightColor: 'transparent',
+          borderBottomColor: active ? iconColor : 'transparent',
+          borderTopWidth: 0,
+          borderColor: iconColor,
+          borderLeftColor: iconColor,
+        }} />
+        <View style={{
+          width: 0,
+          height: 0,
+          borderStyle: 'solid',
+          borderLeftWidth: (size * 0.72) / 2,
+          borderRightWidth: 0,
+          borderBottomWidth: 4,
+          borderLeftColor: 'transparent',
+          borderBottomColor: active ? iconColor : 'transparent',
+          borderTopWidth: 0,
+          borderColor: iconColor,
+          borderRightColor: iconColor,
+        }} />
+      </View>
+    </View>
+  );
+};
+
+const CommentIcon = ({ color = '#8C8385', size = 13 }) => (
+  <View style={{ width: size + 2, height: size + 1, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
+    {/* Bubble body */}
+    <View style={{
+      width: size * 0.95,
+      height: size * 0.75,
+      borderWidth: 1.5,
+      borderColor: color,
+      borderRadius: 4,
+      backgroundColor: 'transparent',
+    }} />
+    {/* Left tail */}
+    <View style={{
+      position: 'absolute',
+      bottom: 0.5,
+      left: 1.8,
+      width: 0,
+      height: 0,
+      borderStyle: 'solid',
+      borderLeftWidth: 3,
+      borderRightWidth: 3,
+      borderTopWidth: 3.5,
+      borderLeftColor: color,
+      borderRightColor: 'transparent',
+      borderTopColor: color,
+    }} />
+  </View>
+);
+
+const DMIcon = ({ color = '#6F405F', size = 13 }) => (
+  <View style={{ width: size + 2, height: size, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
+    {/* Envelope container */}
+    <View style={{
+      width: size * 1.05,
+      height: size * 0.75,
+      borderWidth: 1.5,
+      borderColor: color,
+      borderRadius: 2.2,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+    }}>
+      {/* V line lines */}
+      <View style={{
+        width: 0,
+        height: 0,
+        borderStyle: 'solid',
+        borderLeftWidth: size * 0.42,
+        borderRightWidth: size * 0.42,
+        borderTopWidth: size * 0.28,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: color,
+        marginTop: 0.5,
+      }} />
+    </View>
+  </View>
+);
+
+const FlagIcon = ({ color = '#C46F76', size = 13 }) => (
+  <View style={{ width: size, height: size + 2, flexDirection: 'row', alignItems: 'flex-start' }}>
+    {/* Pole */}
+    <View style={{ width: 1.5, height: size + 1.5, backgroundColor: color }} />
+    {/* Flag banner */}
+    <View style={{
+      width: size * 0.65,
+      height: size * 0.5,
+      backgroundColor: color,
+      borderTopRightRadius: 1.2,
+      borderBottomRightRadius: 1.2,
+    }} />
+  </View>
+);
+
+export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, setActiveReportPost, setReportModalVisible, onOpenComments, showInlineComment = true, flat = false }: {
   item: any;
   currentUser: any;
   handlePostReact: any;
@@ -14,9 +228,15 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
   setActiveReportPost: any;
   setReportModalVisible: any;
   onOpenComments: any;
+  showInlineComment?: boolean;
+  flat?: boolean;
 }) {
-  const { toggleSavePost, deletePost } = usePosts() as any;
+  const { toggleSavePost, deletePost, addComment } = usePosts() as any;
   const { currentLanguage, translateText, t } = useLanguage() as any;
+
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const displayTitle = translateText(item.originalTitle || item.title, currentLanguage);
   const displayContent = translateText(item.originalContent || item.content, currentLanguage);
@@ -39,34 +259,141 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
 
   const isPostOwner = item.username === currentUser?.username;
 
+  useEffect(() => {
+    return () => {
+      audioRecorderPlayer.stopRecorder().catch(() => {});
+    };
+  }, []);
+
+  const handleCommentSubmit = async () => {
+    if (!commentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      await addComment(item.id, commentText.trim(), currentUser);
+      setCommentText('');
+      Alert.alert('Success', 'Comment posted successfully!');
+    } catch (err: any) {
+      console.warn('Comment submit error:', err);
+      Alert.alert('Error', 'Failed to post comment. Please try again.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const startVoiceComment = async () => {
+    const hasPermission = await requestAudioPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission Denied', 'Microphone permission is required to record voice comments.');
+      return;
+    }
+
+    try {
+      setIsRecording(true);
+      await audioRecorderPlayer.startRecorder();
+      
+      Alert.alert(
+        'Recording voice comment...',
+        'Speak now. Converting your voice to anonymous text.',
+        [
+          {
+            text: 'Stop & Transcribe',
+            onPress: async () => {
+              try {
+                const resultUri = await audioRecorderPlayer.stopRecorder();
+                setIsRecording(false);
+                if (resultUri) {
+                  Alert.alert('Processing', 'Transcribing your voice...');
+                  const transcribed = await apiService.voiceToText(resultUri, 'EN');
+                  if (transcribed) {
+                    setCommentText(prev => prev ? `${prev} ${transcribed}` : transcribed);
+                    Alert.alert('Speech-to-Text Success', `Transcribed: "${transcribed}"`);
+                  } else {
+                    Alert.alert('Speech-to-Text Error', 'Could not transcribe speech. Please try again.');
+                  }
+                }
+              } catch (err) {
+                console.warn('Stop recorder failed:', err);
+                setIsRecording(false);
+              }
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              audioRecorderPlayer.stopRecorder().catch(() => {});
+              setIsRecording(false);
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+    } catch (err) {
+      console.warn('Start recorder failed:', err);
+      setIsRecording(false);
+    }
+  };
+
+  const reactionButtons = [
+    { key: 'relate', label: 'Relate', icon: '♡', activeIcon: '❤️' },
+    { key: 'stayStrong', label: 'Support', icon: '🤝', activeIcon: '🤝' },
+    { key: 'wellSaid', label: 'Agree', icon: '👍', activeIcon: '👍' },
+    { key: 'helpful', label: 'Interesting', icon: '💡', activeIcon: '💡' },
+  ];
+
   return (
-    <View style={styles.postCard}>
-      <View style={[styles.postHeader, { alignItems: 'center' }]}>
+    <View style={[
+      styles.postCard,
+      flat && {
+        borderWidth: 0,
+        borderRadius: 0,
+        elevation: 0,
+        shadowOpacity: 0,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 8,
+        marginBottom: 0,
+        backgroundColor: '#FFFFFF',
+      }
+    ]}>
+      {/* Post Header with single line metadata */}
+      <View style={[styles.postHeader, { alignItems: 'center', paddingBottom: 10 }]}>
         <InitialAvatar initials={item.avatarInitials} color={item.avatarColor} size={40} />
         
-        {/* Center content containing Username, Type, and Topic Pill */}
-        <View style={[styles.postHeaderInfo, { flex: 1, marginLeft: 10, justifyContent: 'center' }]}>
-          <Text style={[styles.postUsername, { fontSize: 13.5, fontWeight: '700', color: '#2D1D15' }]} numberOfLines={1}>
-            {item.username}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 6 }}>
-            <Text style={[styles.postMeta, { fontSize: 10.5, color: COLORS.zorba, marginTop: 0 }]}>{item.postType}</Text>
-            <View style={{ width: 3, height: 3, borderRadius: 1.5, backgroundColor: COLORS.zorba }} />
-            <View style={[styles.topicBadgePill, {
+        {/* Center content containing Username, Type, Topic, and Time in one row */}
+        <View style={{ flex: 1, marginLeft: 10, justifyContent: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+            <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#2D1D15' }} numberOfLines={1}>
+              {item.username}
+            </Text>
+            
+            <View style={{
               backgroundColor: topicThemeColor + '12',
               borderColor: topicThemeColor + '40',
               borderWidth: 1,
               borderRadius: 6,
               paddingHorizontal: 6,
               paddingVertical: 1.5,
-            }]}>
-              <Text style={{ fontSize: 9.5, fontWeight: 'bold', color: topicThemeColor }}>{item.topic}</Text>
+            }}>
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: topicThemeColor, textTransform: 'uppercase' }}>
+                {item.topic}
+              </Text>
             </View>
+
+            <Text style={{ fontSize: 10.5, color: COLORS.zorba }}>
+              • {item.postType}
+            </Text>
+            
+            {item.createdAt && (
+              <Text style={{ fontSize: 10.5, color: '#8C8385' }}>
+                • {formatTimeAgo(item.createdAt)}
+              </Text>
+            )}
           </View>
         </View>
 
         {/* Right content containing Save & Delete Actions */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 2 }}>
           {isPostOwner && (
             <TouchableOpacity
               onPress={() => {
@@ -79,85 +406,206 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
                   ]
                 );
               }}
-              style={{ padding: 6 }}
+              style={{ padding: 4 }}
             >
-              <Text style={{ fontSize: 16, color: '#C46F76' }}>🗑️</Text>
+              <TrashIcon color="#C46F76" size={15} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => toggleSavePost(item.id)} style={{ padding: 6 }}>
-            <Text style={{ fontSize: 18 }}>{item.isSaved ? '⭐' : '☆'}</Text>
+          <TouchableOpacity onPress={() => toggleSavePost(item.id)} style={{ padding: 4 }}>
+            <BookmarkIcon active={item.isSaved} color="#8C8385" size={15} />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Header Separator Line */}
+      <View style={{ height: 1, backgroundColor: '#F0ECEE', marginBottom: 12 }} />
 
       <Text style={styles.postTitle}>{displayTitle}</Text>
       <Text style={styles.postContent}>{displayContent}</Text>
 
-      {/* Reactions display pills */}
-      <View style={styles.reactionsDisplayRow}>
-        {Object.keys(item.reactions).map(reaction => {
-          const emojis: Record<string, string> = { relate: '❤️', wellSaid: '👍', helpful: '🔥', stayStrong: '🤝', madeMeThink: '💯' };
-          const count = item.reactions[reaction];
-          const active = userReacted === reaction;
-          if (count === 0 && !active) { return null; }
+      {item.imageUrl ? (
+        <View style={{ marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#F0ECEE' }}>
+          <Image
+            source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : `https://api.awaazmanki.com${item.imageUrl}` }}
+            style={{ width: '100%', height: 200, resizeMode: 'cover' }}
+          />
+        </View>
+      ) : null}
+
+      {/* Capsule reaction and comments row */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 12, alignItems: 'center' }}>
+        {reactionButtons.map((btn) => {
+          const count = item.reactions[btn.key] || 0;
+          const isActive = userReacted === btn.key;
           return (
             <TouchableOpacity
-              key={reaction}
-              style={[styles.reactionBadge, active && styles.reactionBadgeActive]}
-              onPress={() => handlePostReact(item.id, reaction)}
+              key={btn.key}
+              onPress={() => handlePostReact(item.id, btn.key)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: isActive ? '#6F405F' : '#E8E1E5',
+                backgroundColor: isActive ? 'rgba(111, 64, 95, 0.06)' : '#FFFFFF',
+              }}
             >
-              <Text style={[styles.reactionBadgeText, active && { color: '#FFF', fontWeight: 'bold' }]}>
-                {emojis[reaction]} {count}
+              <Text style={{ fontSize: 13, marginRight: 4 }}>
+                {isActive ? btn.activeIcon : btn.icon}
+              </Text>
+              <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: isActive ? '#6F405F' : '#5C5254' }}>
+                {btn.label} {count > 0 ? `(${count})` : ''}
               </Text>
             </TouchableOpacity>
           );
         })}
+
+        {/* Comments Pill */}
+        <TouchableOpacity
+          onPress={() => onOpenComments(item)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 6,
+            paddingHorizontal: 12,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: '#E8E1E5',
+            backgroundColor: '#FFFFFF',
+          }}
+        >
+          <Text style={{ fontSize: 13, marginRight: 4 }}>💬</Text>
+          <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: '#5C5254' }}>
+            Comments {item.commentCount > 0 ? `(${item.commentCount})` : ''}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Chat triggers */}
+        {item.username !== currentUser?.username && (
+          <TouchableOpacity
+            onPress={() => onNavigateToChat(item.username, item.authorId || item.userId || item.user?.id, item.avatarInitials, item.avatarColor)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#E8E1E5',
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            <Text style={{ fontSize: 13, marginRight: 4 }}>✉️</Text>
+            <Text style={{ fontSize: 11.5, fontWeight: 'bold', color: '#6F405F' }}>DM</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Flag / Report Trigger */}
+        {item.username !== currentUser?.username && (
+          <TouchableOpacity
+            onPress={() => {
+              setActiveReportPost(item);
+              setReportModalVisible(true);
+            }}
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#E8E1E5',
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            <Text style={{ fontSize: 13 }}>🏳️</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Action row */}
-      <View style={styles.postActionRow}>
-        {/* Emoji bar picker */}
-        <View style={styles.emojiPickerBar}>
-          {Object.entries({ relate: '❤️', wellSaid: '👍', helpful: '🔥', stayStrong: '🤝', madeMeThink: '💯' }).map(([key, emoji]) => (
-            <TouchableOpacity key={key} onPress={() => handlePostReact(item.id, key)} style={styles.emojiPickerButton}>
-              <Text style={[styles.emojiPickerText, userReacted === key && { transform: [{ scale: 1.3 }] }]}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      {/* Inline Comment Input Bar */}
+      {showInlineComment && (
+        <>
+          {/* Separator line */}
+          <View style={{ height: 1, backgroundColor: '#F0ECEE', marginVertical: 8 }} />
 
-        <View style={styles.actionButtonContainer}>
-          {/* Comment triggers */}
-          <TouchableOpacity
-            style={styles.commentActionButton}
-            onPress={() => onOpenComments(item)}
-          >
-            <Text style={styles.commentActionButtonText}>💬 {item.commentCount}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4 }}>
+            <InitialAvatar
+              initials={currentUser?.avatarInitials || 'AN'}
+              color={currentUser?.avatarColor || '#6F405F'}
+              size={32}
+            />
+            
+            <View style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FAF8F8',
+              borderWidth: 1,
+              borderColor: '#E8E1E5',
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              marginHorizontal: 8,
+              height: 38,
+            }}>
+              <TextInput
+                placeholder={`Comment as ${currentUser?.username || '@anonymous'}...`}
+                placeholderTextColor="#CEC7C5"
+                value={commentText}
+                onChangeText={setCommentText}
+                style={{
+                  flex: 1,
+                  fontSize: 12.5,
+                  color: '#2D1D15',
+                  paddingVertical: 0,
+                }}
+              />
+              
+              {/* Microphone Icon Button */}
+              <TouchableOpacity
+                onPress={startVoiceComment}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: isRecording ? '#C46F76' : '#F2EDED',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 12, color: isRecording ? '#FFFFFF' : '#6F405F' }}>🎙️</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Chat triggers */}
-          {item.username !== currentUser?.username && (
             <TouchableOpacity
-              style={styles.chatActionButton}
-              onPress={() => onNavigateToChat(item.username, item.authorId || item.userId || item.user?.id, item.avatarInitials, item.avatarColor)}
-            >
-              <Text style={styles.chatActionButtonText}>DM</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Flag / Report Trigger */}
-          {item.username !== currentUser?.username && (
-            <TouchableOpacity
-              style={styles.flagActionButton}
-              onPress={() => {
-                setActiveReportPost(item);
-                setReportModalVisible(true);
+              onPress={handleCommentSubmit}
+              disabled={submittingComment || !commentText.trim()}
+              style={{
+                height: 34,
+                paddingHorizontal: 14,
+                borderRadius: 17,
+                backgroundColor: commentText.trim() ? '#6F405F' : '#E8E1E5',
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
-              <Text style={styles.flagActionButtonText}>🚩</Text>
+              {submittingComment ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={{
+                  color: commentText.trim() ? '#FFFFFF' : '#8C8385',
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                }}>
+                  Post
+                </Text>
+              )}
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { InitialAvatar } from '../common/InitialAvatar';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
 
-export function CommentItem({ comment: c, postId, currentUser }: { comment: any; postId: any; currentUser: any }) {
+export function CommentItem({ comment: c, postId, currentUser, onNavigateToChat }: { comment: any; postId: any; currentUser: any; onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void }) {
   const { replyToComment, updateComment, deleteComment, reactToComment } = usePosts() as any;
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -38,10 +38,21 @@ export function CommentItem({ comment: c, postId, currentUser }: { comment: any;
     <View style={{ marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F8F5F4', paddingBottom: 12 }}>
       {/* Comment Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity
+          disabled={!onNavigateToChat || c.username === currentUser?.username}
+          onPress={() => {
+            const cleanUsername = c.username ? c.username.replace('@', '') : '';
+            const authorId = c.authorId || c.userId || c.author?.id || c.user?.id || 0;
+            if (onNavigateToChat) {
+              onNavigateToChat(cleanUsername, authorId, c.avatarInitials, c.avatarColor || '#3F7772');
+            }
+          }}
+          activeOpacity={0.7}
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+        >
           <InitialAvatar initials={c.avatarInitials} color={c.avatarColor || '#3F7772'} size={28} />
           <Text style={[styles.commentUser, { marginLeft: 8 }]}>{c.username}</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Actions Menu */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -93,7 +104,7 @@ export function CommentItem({ comment: c, postId, currentUser }: { comment: any;
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={[styles.commentContent, { fontSize: 13.5, color: '#2D1D15' }]}>{displayContent}</Text>
+          <Text style={[styles.commentContent, { fontSize: 13.5, color: '#2D1D15', marginLeft: 0 }]}>{displayContent}</Text>
         )}
       </View>
 
@@ -120,10 +131,21 @@ export function CommentItem({ comment: c, postId, currentUser }: { comment: any;
             return (
               <View key={r.id} style={{ marginBottom: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity
+                    disabled={!onNavigateToChat || r.username === currentUser?.username}
+                    onPress={() => {
+                      const cleanUsername = r.username ? r.username.replace('@', '') : '';
+                      const authorId = r.authorId || r.userId || r.author?.id || r.user?.id || 0;
+                      if (onNavigateToChat) {
+                        onNavigateToChat(cleanUsername, authorId, r.avatarInitials, r.avatarColor || '#6F405F');
+                      }
+                    }}
+                    activeOpacity={0.7}
+                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                  >
                     <InitialAvatar initials={r.avatarInitials} color={r.avatarColor || '#6F405F'} size={22} />
                     <Text style={[styles.commentUser, { marginLeft: 6, fontSize: 11.5, color: '#8C8385' }]}>{r.username}</Text>
-                  </View>
+                  </TouchableOpacity>
                   {isReplyOwner && (
                     <TouchableOpacity onPress={() => deleteComment(r.id, postId)}>
                       <Text style={{ fontSize: 10, color: COLORS.error }}>âœ•</Text>

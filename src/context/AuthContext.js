@@ -19,7 +19,13 @@ export function AuthProvider({ children }) {
         try {
           apiService.setToken(token);
           const profile = await apiService.getMyProfile();
-          if (profile) {
+          const isDefaultUsername = (uname) => {
+            if (!uname) return true;
+            const clean = uname.startsWith('@') ? uname.slice(1) : uname;
+            return /^user_\d+$/i.test(clean);
+          };
+
+          if (profile && profile.username && !isDefaultUsername(profile.username)) {
             const parsedUser = JSON.parse(storedUser);
             const updatedUser = {
               ...parsedUser,
@@ -29,11 +35,14 @@ export function AuthProvider({ children }) {
               avatarInitials: (profile.fullName || parsedUser.fullName || profile.username || parsedUser.username || 'AN').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
               avatarColor: profile.avatar || parsedUser.avatarColor || '#6F405F',
               bio: profile.bio || parsedUser.bio || '',
+              hasProfile: true,
             };
             localStorage.setItem('auth_user', JSON.stringify(updatedUser));
             setCurrentUser(updatedUser);
           } else {
-            setCurrentUser(JSON.parse(storedUser));
+            const parsedUser = JSON.parse(storedUser);
+            parsedUser.hasProfile = false;
+            setCurrentUser(parsedUser);
           }
         } catch (e) {
           console.warn('[AuthContext] Session validation failed on start:', e.message);
@@ -44,13 +53,23 @@ export function AuthProvider({ children }) {
             e.message.includes('Failed to connect')
           );
 
-          if (!isNetworkError) {
-            apiService.setToken(null);
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
-            setCurrentUser(null);
+          if (isNetworkError) {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.hasProfile === undefined) {
+              parsedUser.hasProfile = true;
+            }
+            setCurrentUser(parsedUser);
           } else {
-            setCurrentUser(JSON.parse(storedUser));
+            if (e.status === 401 || e.status === 403) {
+              apiService.setToken(null);
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('auth_user');
+              setCurrentUser(null);
+            } else {
+              const parsedUser = JSON.parse(storedUser);
+              parsedUser.hasProfile = false;
+              setCurrentUser(parsedUser);
+            }
           }
         }
       }
@@ -64,52 +83,54 @@ export function AuthProvider({ children }) {
       throw new Error('Please fill in all fields.');
     }
 
-    try {
-      // 1. Try real backend login
-      const response = await apiService.login(email, password);
-      if (response.success && response.data) {
-        apiService.setToken(response.token);
-        apiService.setCurrentUser(response.data);
-        setCurrentUser(response.data);
-        return response.data;
-      }
-    } catch (err) {
-      const isNetworkError = err.message && (
-        err.message.includes('Network request failed') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Failed to connect')
-      );
+    const response = await apiService.login(email, password);
+    if (response.success && response.token) {
+      apiService.setToken(response.token);
 
-      const isValidationError = err.message && (
-        err.message.includes('Validation Failed') ||
-        err.message.includes('Invalid email') ||
-        err.message.includes('Email is required')
-      );
+      let hasProfile = false;
+      try {
+        const profile = await apiService.getMyProfile();
+        const isDefaultUsername = (uname) => {
+          if (!uname) return true;
+          const clean = uname.startsWith('@') ? uname.slice(1) : uname;
+          return /^user_\d+$/i.test(clean);
+        };
 
-      if (!isNetworkError && !isValidationError) {
-        throw err;
+        if (profile && profile.username && !isDefaultUsername(profile.username)) {
+          hasProfile = true;
+          localStorage.setItem(`user_profile_${response.data.id}`, JSON.stringify(profile));
+          localStorage.setItem('user_profile', JSON.stringify(profile));
+          
+          // Merge profile fields
+          response.data.profile = profile;
+          response.data.username = profile.username ? (profile.username.startsWith('@') ? profile.username : `@${profile.username}`) : '';
+          response.data.avatarColor = profile.avatar || '#6F405F';
+          response.data.bio = profile.bio || '';
+        }
+      } catch (profileErr) {
+        const isNetworkError = profileErr.message && (
+          profileErr.message.includes('Network request failed') ||
+          profileErr.message.includes('Failed to fetch') ||
+          profileErr.message.includes('Failed to connect')
+        );
+        if (isNetworkError) {
+          hasProfile = true;
+        } else {
+          hasProfile = false;
+        }
       }
+
+      const loggedUser = {
+        ...response.data,
+        hasProfile,
+      };
+
+      apiService.setCurrentUser(loggedUser);
+      setCurrentUser(loggedUser);
+      return loggedUser;
+    } else {
+      throw new Error(response.message || 'Login failed.');
     }
-
-    // 2. Mock Fallback matching web format
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const nameFromEmail = email.split('@')[0];
-    const mockUser = {
-      id: `user_${Date.now()}`,
-      fullName: nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1),
-      email: email.toLowerCase(),
-      username: `@${nameFromEmail.toLowerCase()}`,
-      avatarInitials: nameFromEmail.slice(0, 2).toUpperCase(),
-      avatarColor: '#6F405F',
-      bio: 'Short bio about yourself...',
-      role: email.toLowerCase().includes('admin') ? 'ROLE_ADMIN' : 'ROLE_USER',
-      joinedDate: new Date().toISOString(),
-    };
-
-    apiService.setToken('mock_token_' + Date.now());
-    apiService.setCurrentUser(mockUser);
-    setCurrentUser(mockUser);
-    return mockUser;
   };
 
   const register = async (userData) => {
@@ -118,73 +139,23 @@ export function AuthProvider({ children }) {
       throw new Error('Please fill in all fields.');
     }
 
-    try {
-      // Try real backend register
-      const response = await apiService.register(fullName, email, mobileNumber, password);
-      if (response && response.success) {
-        // Return success flag (do NOT auto-login user)
-        return { success: true };
-      }
-    } catch (err) {
-      const isNetworkError = err.message && (
-        err.message.includes('Network request failed') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Failed to connect')
-      );
-
-      const isValidationError = err.message && (
-        err.message.includes('Validation Failed')
-      );
-
-      if (!isNetworkError && !isValidationError) {
-        throw err;
-      }
+    const response = await apiService.register(fullName, email, mobileNumber, password);
+    if (response && response.success) {
+      // Return success flag (do NOT auto-login user)
+      return { success: true };
+    } else {
+      throw new Error(response?.message || 'Registration failed.');
     }
-
-    // Mock Fallback
-    await new Promise(resolve => setTimeout(resolve, 600));
-    // Return success flag (do NOT auto-login user)
-    return { success: true };
   };
 
   const verifyEmailOtp = async (email, otp) => {
-    try {
-      await apiService.verifyEmail(email, otp);
-      return true;
-    } catch (err) {
-      console.warn('Email verification failed:', err.message);
-
-      const isNetworkError = err.message && (
-        err.message.includes('Network request failed') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Failed to connect')
-      );
-
-      if (isNetworkError && (otp === '123456' || otp === '111111')) {
-        return true;
-      }
-      throw err;
-    }
+    await apiService.verifyEmail(email, otp);
+    return true;
   };
 
   const resendEmailOtp = async (email) => {
-    try {
-      await apiService.resendEmailOtp(email);
-      return true;
-    } catch (err) {
-      console.warn('Resend email OTP failed:', err.message);
-
-      const isNetworkError = err.message && (
-        err.message.includes('Network request failed') ||
-        err.message.includes('Failed to fetch') ||
-        err.message.includes('Failed to connect')
-      );
-
-      if (!isNetworkError) {
-        throw err;
-      }
-      return true;
-    }
+    await apiService.resendEmailOtp(email);
+    return true;
   };
 
   const updateProfile = async (updates) => {
@@ -196,12 +167,17 @@ export function AuthProvider({ children }) {
         bio: updates.bio !== undefined ? updates.bio : (currentUser.bio || ''),
         avatar: updates.avatarColor !== undefined ? updates.avatarColor : (currentUser.avatarColor || '#6F405F'),
         username: updates.username !== undefined ? updates.username : (currentUser.username || ''),
+        preferredLanguage: updates.preferredLanguage !== undefined ? updates.preferredLanguage : (currentUser.preferredLanguage || 'EN'),
       };
 
-      await apiService.updateProfile(payload);
+      if (currentUser.hasProfile === false) {
+        await apiService.createProfile(payload);
+      } else {
+        await apiService.updateProfile(payload);
+      }
 
       setCurrentUser(prev => {
-        const updated = { ...prev, ...updates };
+        const updated = { ...prev, ...updates, hasProfile: true };
         if (updates.username && !updates.username.startsWith('@')) {
           updated.username = `@${updates.username}`;
         }
@@ -214,7 +190,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.warn('[AuthContext] Failed to update profile on backend:', err.message);
       setCurrentUser(prev => {
-        const updated = { ...prev, ...updates };
+        const updated = { ...prev, ...updates, hasProfile: true };
         if (updates.username && !updates.username.startsWith('@')) {
           updated.username = `@${updates.username}`;
         }

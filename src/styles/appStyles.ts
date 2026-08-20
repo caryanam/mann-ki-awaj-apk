@@ -1,5 +1,5 @@
-﻿import { StyleSheet, Platform } from 'react-native';
-import { COLORS, RADIUS, SHADOWS } from './theme';
+import { StyleSheet, Platform } from 'react-native';
+import { RADIUS, SHADOWS } from './theme';
 
 export const styles = StyleSheet.create({
   container: {

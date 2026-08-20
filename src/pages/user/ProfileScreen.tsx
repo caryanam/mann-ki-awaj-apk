@@ -6,14 +6,13 @@ import { CommentItem } from '../../components/posts/CommentItem';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { apiService } from '../../services/apiService';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
 
-export function ProfileScreen() {
+export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } = {}) {
   const { currentUser, logout, updateProfile } = useAuth() as any;
   const { posts, blockedUsers, blockUser, unblockUser, reports, reactToPost, loadComments, addComment } = usePosts() as any;
-  const { currentLanguage, changeLanguage, supportedLanguages, t } = useLanguage() as any;
+  const { currentLanguage, changeLanguage, supportedLanguages, t, translationCache } = useLanguage() as any;
 
   const [bioInput, setBioInput] = useState(currentUser?.bio || '');
   const [isEditing, setIsEditing] = useState(false);
@@ -1934,9 +1933,20 @@ export function ProfileScreen() {
                 data={activePostForModal.comments}
                 keyExtractor={c => c.id}
                 style={{ flex: 1 }}
+                extraData={{ currentLanguage, translationCache }}
                 contentContainerStyle={{ padding: 16 }}
                 renderItem={({ item: c }) => (
-                  <CommentItem comment={c} postId={activePostForModal.id} currentUser={currentUser} />
+                  <CommentItem
+                    comment={c}
+                    postId={activePostForModal.id}
+                    currentUser={currentUser}
+                    onNavigateToChat={(username, authorId, initials, color) => {
+                      setCommentModalVisible(false);
+                      if (onNavigateToChat) {
+                        onNavigateToChat(username, authorId, initials, color);
+                      }
+                    }}
+                  />
                 )}
               />
 

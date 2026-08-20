@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, TextI
 import { apiService } from '../../services/apiService';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { ShieldIcon, BanIcon, FlagIcon, EyeIcon } from '../../components/common/Icons';
+import { EyeIcon } from '../../components/common/Icons';
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return 'N/A';
@@ -15,11 +15,38 @@ const formatDate = (dateStr: string) => {
   }
 };
 
+const getUserHandle = (user: any) => {
+  if (!user) return '';
+  // Try profile's anonymous username first
+  let rawUname = user.profile?.username || user.profileUsername;
+
+  if (!rawUname && user.username) {
+    // If user.username has spaces or is an email, it's not a valid anonymous handle
+    const hasSpace = user.username.includes(' ');
+    const isEmail = user.username.includes('@') && user.username.includes('.');
+    if (!hasSpace && !isEmail) {
+      rawUname = user.username;
+    }
+  }
+
+  // Fallback to email prefix or ID to guarantee anonymity
+  if (!rawUname) {
+    if (user.email) {
+      rawUname = user.email.split('@')[0];
+    } else {
+      rawUname = `user_${user.id}`;
+    }
+  }
+
+  const clean = rawUname.trim();
+  return clean.startsWith('@') ? clean : `@${clean}`;
+};
+
 export function AdminUsersScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // User Detail States
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userTab, setUserTab] = useState<'posts' | 'blocked'>('posts');
@@ -97,7 +124,7 @@ export function AdminUsersScreen() {
       if (blockedRes.status === 'fulfilled') {
         const resVal = blockedRes.value;
         const rawBlocked = resVal?.data?.content || resVal?.content || (Array.isArray(resVal) ? resVal : []);
-        const cleanUserHandle = (user.username || '').toLowerCase().replace(/^@/, '');
+        const cleanUserHandle = getUserHandle(user).toLowerCase().replace(/^@/, '');
         const filteredBlocked = rawBlocked.filter((b: any) => {
           if (b.userId && String(b.userId) === String(user.id)) return true;
           const bUname = (b.authorUsername || b.authorEmail || '').toLowerCase().replace(/^@/, '');
@@ -117,12 +144,13 @@ export function AdminUsersScreen() {
 
   const handleToggleBlock = async (user: any) => {
     try {
+      const handle = getUserHandle(user);
       if (user.active) {
         await apiService.adminBlockUser(user.id);
-        Alert.alert('Status Updated', `Blocked account for @${user.username}`);
+        Alert.alert('Status Updated', `Blocked account for ${handle}`);
       } else {
         await apiService.adminUnblockUser(user.id);
-        Alert.alert('Status Updated', `Unblocked account for @${user.username}`);
+        Alert.alert('Status Updated', `Unblocked account for ${handle}`);
       }
       fetchUsers(searchQuery);
       if (selectedUser && selectedUser.id === user.id) {
@@ -138,7 +166,7 @@ export function AdminUsersScreen() {
     setSendingWarning(true);
     try {
       await apiService.adminSendWarning(selectedUser.id, warningLevel, warningMessage.trim());
-      Alert.alert('Success', `Warning notice sent to @${selectedUser.username}`);
+      Alert.alert('Success', `Warning notice sent to ${getUserHandle(selectedUser)}`);
       setWarningModalOpen(false);
       setWarningMessage('');
       fetchUsers(searchQuery);
@@ -204,8 +232,8 @@ export function AdminUsersScreen() {
         }
         renderItem={({ item }) => {
           const isBanned = item.status === 'BANNED' || !item.active;
-          const cleanHandle = item.username ? (item.username.startsWith('@') ? item.username : `@${item.username}`) : `@user_${item.id}`;
-          
+          const cleanHandle = getUserHandle(item);
+
           return (
             <TouchableOpacity
               onPress={() => handleOpenUserDetail(item)}
@@ -256,10 +284,10 @@ export function AdminUsersScreen() {
               <View style={{ padding: 20, backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, borderBottomWidth: 1, borderBottomColor: '#F0ECEB', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#6F405F', justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 14, fontWeight: '900', color: '#FFFFFF' }}>{selectedUser.username.replace('@', '').charAt(0).toUpperCase()}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '900', color: '#FFFFFF' }}>{getUserHandle(selectedUser).replace('@', '').charAt(0).toUpperCase()}</Text>
                   </View>
                   <View>
-                    <Text style={{ fontSize: 15, fontWeight: '900', color: '#2D1D15' }}>@{selectedUser.username.replace('@', '')}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: '900', color: '#2D1D15' }}>{getUserHandle(selectedUser)}</Text>
                     <Text style={{ fontSize: 11, color: '#8C8385' }}>Email: {selectedUser.email || 'N/A'}</Text>
                   </View>
                 </View>
@@ -448,11 +476,11 @@ export function AdminUsersScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#6F405F', justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ fontSize: 14, fontWeight: '900', color: '#FFFFFF' }}>
-                      {String(selectedUser?.username || 'U').replace('@', '').charAt(0).toUpperCase()}
+                      {getUserHandle(selectedUser).replace('@', '').charAt(0).toUpperCase()}
                     </Text>
                   </View>
                   <View>
-                    <Text style={{ fontSize: 14, fontWeight: '900', color: '#2D1D15' }}>@{String(selectedUser?.username || 'user').replace('@', '')}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '900', color: '#2D1D15' }}>{getUserHandle(selectedUser)}</Text>
                     <Text style={{ fontSize: 11, color: '#8C8385' }}>Published {formatDate(previewPost.createdAt)}</Text>
                   </View>
                 </View>
@@ -510,7 +538,7 @@ export function AdminUsersScreen() {
           <SafeAreaView style={[styles.centerModalOverlay, { backgroundColor: 'rgba(45, 29, 21, 0.4)' }]}>
             <View style={[styles.reportModalCard, { borderRadius: 28, padding: 24, width: '90%', elevation: 12, borderTopWidth: 5, borderTopColor: '#C46F76' }]}>
               <Text style={{ fontSize: 18, fontWeight: '900', color: '#2D1D15', marginBottom: 4 }}>Send Compliance Warning</Text>
-              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 16 }}>Specify violation warning for @{selectedUser.username}</Text>
+              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 16 }}>Specify violation warning for {getUserHandle(selectedUser)}</Text>
 
               {/* Radio Selector Stage list */}
               <Text style={{ fontSize: 11, fontWeight: '900', color: '#2D1D15', marginBottom: 8 }}>WARNING STAGE LEVEL:</Text>

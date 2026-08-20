@@ -19,7 +19,8 @@ export function LanguageProvider({ children }) {
         if (currentUser) {
           const preferred = currentUser.profile?.preferredLanguage || currentUser.preferredLanguage;
           if (preferred) {
-            const normalized = preferred === 'Hindi' ? 'HI' : (preferred === 'Marathi' ? 'MR' : (preferred === 'Gujarati' ? 'GU' : 'EN'));
+            const langObj = SUPPORTED_LANGUAGES.find(l => l.label === preferred);
+            const normalized = langObj ? langObj.code : 'EN';
             if (normalized !== currentLanguage) {
               setCurrentLanguage(normalized);
             }
@@ -31,7 +32,8 @@ export function LanguageProvider({ children }) {
         if (token && !token.startsWith('mock')) {
           const profile = await apiService.getMyProfile();
           if (profile?.preferredLanguage) {
-            const normalized = profile.preferredLanguage === 'Hindi' ? 'HI' : (profile.preferredLanguage === 'Marathi' ? 'MR' : (profile.preferredLanguage === 'Gujarati' ? 'GU' : 'EN'));
+            const langObj = SUPPORTED_LANGUAGES.find(l => l.label === profile.preferredLanguage);
+            const normalized = langObj ? langObj.code : 'EN';
             if (normalized !== currentLanguage) {
               setCurrentLanguage(normalized);
             }
@@ -49,8 +51,9 @@ export function LanguageProvider({ children }) {
 
     setCurrentLanguage(langCode);
 
-    // Normalize code for backend: 'HI' -> 'Hindi', 'MR' -> 'Marathi', 'GU' -> 'Gujarati', 'EN' -> 'English'
-    const backendLang = langCode === 'HI' ? 'Hindi' : (langCode === 'MR' ? 'Marathi' : (langCode === 'GU' ? 'Gujarati' : 'English'));
+    // Normalize code for backend dynamically from SUPPORTED_LANGUAGES
+    const langObj = SUPPORTED_LANGUAGES.find(l => l.code === langCode);
+    const backendLang = langObj ? langObj.label : 'English';
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -72,8 +75,9 @@ export function LanguageProvider({ children }) {
   };
 
   const t = (key, defaultText) => {
-    // Resolve key code
-    const langKey = currentLanguage === 'HI' ? 'Hindi' : (currentLanguage === 'MR' ? 'Marathi' : (currentLanguage === 'GU' ? 'Gujarati' : 'English'));
+    // Resolve key code dynamically
+    const langObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage);
+    const langKey = langObj ? langObj.label : 'English';
     const dict = UI_DICTIONARY[langKey];
     if (dict && dict[key]) return dict[key];
 
@@ -124,6 +128,7 @@ export function LanguageProvider({ children }) {
       translateText,
       translateTextAsync,
       supportedLanguages: SUPPORTED_LANGUAGES,
+      translationCache,
     }}>
       {children}
     </LanguageContext.Provider>

@@ -11,7 +11,7 @@ import { styles } from '../../styles/appStyles';
 export function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
   const { posts, reactToPost, addComment, fileReport, loadComments } = usePosts() as any;
   const { currentUser } = useAuth() as any;
-  const { t } = useLanguage() as any;
+  const { t, currentLanguage, translationCache } = useLanguage() as any;
 
   const [selectedTopic, setSelectedTopic] = useState('All');
   const [selectedPost, setSelectedPost] = useState<any>(null);
@@ -75,12 +75,12 @@ export function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) 
             >
               <Text style={[styles.topicChipText, selectedTopic === topic && { color: '#FFF', fontWeight: 'bold' }]}>
                 {topic === 'All' ? t('topicAll', 'All') :
-                 topic === 'General' ? t('topicGeneral', 'General') :
-                 topic === 'Mental Health' ? t('topicMentalHealth', 'Mental Health') :
-                 topic === 'Career' ? t('topicCareer', 'Career') :
-                 topic === 'Relationships' ? t('topicRelationships', 'Relationships') :
-                 topic === 'Tech & Society' ? t('topicTechSociety', 'Tech & Society') :
-                 topic === 'Confessions' ? t('topicConfessions', 'Confessions') : topic}
+                  topic === 'General' ? t('topicGeneral', 'General') :
+                    topic === 'Mental Health' ? t('topicMentalHealth', 'Mental Health') :
+                      topic === 'Career' ? t('topicCareer', 'Career') :
+                        topic === 'Relationships' ? t('topicRelationships', 'Relationships') :
+                          topic === 'Tech & Society' ? t('topicTechSociety', 'Tech & Society') :
+                            topic === 'Confessions' ? t('topicConfessions', 'Confessions') : topic}
               </Text>
             </TouchableOpacity>
           ))}
@@ -91,6 +91,7 @@ export function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) 
       <FlatList
         data={filteredPosts}
         keyExtractor={item => item.id}
+        extraData={{ currentLanguage, translationCache }}
         contentContainerStyle={styles.feedScroll}
         renderItem={({ item }) => (
           <PostCardItem
@@ -185,7 +186,15 @@ export function HomeFeedScreen({ onNavigateToChat }: { onNavigateToChat: any }) 
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 16 }}
                 renderItem={({ item: c }) => (
-                  <CommentItem comment={c} postId={activePostForModal.id} currentUser={currentUser} />
+                  <CommentItem
+                    comment={c}
+                    postId={activePostForModal.id}
+                    currentUser={currentUser}
+                    onNavigateToChat={(username, authorId, initials, color) => {
+                      setCommentModalVisible(false);
+                      onNavigateToChat(username, authorId, initials, color);
+                    }}
+                  />
                 )}
               />
 

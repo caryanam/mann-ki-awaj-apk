@@ -29,7 +29,9 @@ async function request(endpoint, options = {}) {
   } catch (e) {}
 
   if (!response.ok) {
-    throw new Error(data?.message || `HTTP Error ${response.status}`);
+    const error = new Error(data?.message || `HTTP Error ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -120,8 +122,41 @@ export const apiService = {
     });
   },
 
+  async forgotPassword(identifier) {
+    return await request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier }),
+    });
+  },
+
+  async verifyForgotPasswordOtp(identifier, otp) {
+    return await request('/api/auth/verify-forgot-password-otp', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, otp }),
+    });
+  },
+
+  async resetPassword(identifier, otp, newPassword) {
+    return await request('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, otp, newPassword }),
+    });
+  },
+
   async getMyProfile() {
     const res = await request('/api/profile/me');
+    return res?.data || res;
+  },
+
+  async createProfile(profileData) {
+    const cleanData = {
+      ...profileData,
+      username: profileData?.username ? (profileData.username.startsWith('@') ? profileData.username.slice(1) : profileData.username) : profileData?.username,
+    };
+    const res = await request('/api/profile', {
+      method: 'POST',
+      body: JSON.stringify(cleanData),
+    });
     return res?.data || res;
   },
 
@@ -161,8 +196,10 @@ export const apiService = {
       title: postData.title || '',
       content: postData.content,
       topic: toBackendTopic(postData.topic),
-      type: toBackendPostType(postData.postType || 'Thought'),
+      type: toBackendPostType(postData.postType || 'Thought', !!postData.imageUrl),
       originalLanguage: 'EN',
+      imageUrl: postData.imageUrl || null,
+      allowComments: postData.allowComments !== undefined ? postData.allowComments : true,
     };
     const res = await request('/api/posts', {
       method: 'POST',
@@ -655,51 +692,15 @@ export const apiService = {
 
   // ── EXTENDED ADMIN ENDPOINTS ──
   async adminFetchUsers(search = '') {
-    try {
-      let url = '/api/admin/users?page=0&size=50';
-      if (search && search.trim()) {
-        url += `&search=${encodeURIComponent(search.trim())}`;
-      }
-      const res = await request(url);
-      return res?.data || res || [];
-    } catch (err) {
-      console.warn('[apiService] Failed to fetch users, returning mock data:', err.message);
-      const mock = [
-        { id: '1', username: 'anonymous', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user1@example.com', createdAt: '2026-08-01T12:00:00Z', warningCount: 0, active: true },
-        { id: '2', username: 'newvoice23', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user2@example.com', createdAt: '2026-08-02T12:00:00Z', warningCount: 1, active: true },
-        { id: '3', username: 'silentnote84', role: 'ROLE_USER', status: 'ACTIVE', handleCount: 1, email: 'user3@example.com', createdAt: '2026-08-03T12:00:00Z', warningCount: 2, active: true },
-        { id: '4', username: 'admin', role: 'ROLE_ADMIN', status: 'ACTIVE', handleCount: 1, email: 'admin@example.com', createdAt: '2026-08-04T12:00:00Z', warningCount: 0, active: true },
-        { id: '5', username: 'banned_user', role: 'ROLE_USER', status: 'BANNED', handleCount: 1, email: 'banned@example.com', createdAt: '2026-08-05T12:00:00Z', warningCount: 3, active: false },
-      ];
-      if (search && search.trim()) {
-        const query = search.toLowerCase();
-        return mock.filter(u => u.username.toLowerCase().includes(query) || u.email.toLowerCase().includes(query));
-      }
-      return mock;
+    let url = '/api/admin/users?page=0&size=50';
+    if (search && search.trim()) {
+      url += `&search=${encodeURIComponent(search.trim())}`;
     }
+    const res = await request(url);
+    return res?.data || res || [];
   },
 
-  async adminBlockUser(username) {
-    try {
-      return await request(`/api/admin/users/${username}/block`, {
-        method: 'POST',
-      });
-    } catch (err) {
-      console.warn('[apiService] adminBlockUser failed:', err.message);
-      return { success: true };
-    }
-  },
 
-  async adminUnblockUser(username) {
-    try {
-      return await request(`/api/admin/users/${username}/unblock`, {
-        method: 'POST',
-      });
-    } catch (err) {
-      console.warn('[apiService] adminUnblockUser failed:', err.message);
-      return { success: true };
-    }
-  },
 
   async adminFetchSettings() {
     try {
@@ -861,5 +862,18 @@ export const apiService = {
       method: 'PUT',
       body: JSON.stringify({ language }),
     });
+  },
+
+  async uploadImage(formData) {
+    const token = localStorage.getItem('auth_token');
+    const res = await fetch('https://api.awaazmanki.com/api/upload/image', {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+    const data = await res.json();
+    return data;
   },
 };

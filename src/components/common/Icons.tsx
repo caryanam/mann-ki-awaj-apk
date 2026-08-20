@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { COLORS } from '../../styles/theme';
 
 export const HamburgerIcon = ({ color = '#2D1D15' }) => (
   <View style={{ width: 18, height: 12, justifyContent: 'space-between' }}>

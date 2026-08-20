@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Text, TouchableOpacity, TextInput, FlatList, Modal, SafeAreaView, Alert, Platform } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity } from 'react-native';
 import { usePosts } from '../../context/PostContext';
 import { apiService } from '../../services/apiService';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { DocIcon, FlagIcon, ProfileIcon, EyeIcon, BanIcon, BarChartIcon, LogsIcon, ShieldIcon, SettingsIcon, BellIcon } from '../../components/common/Icons';
+import { DocIcon, FlagIcon, ProfileIcon, EyeIcon, BarChartIcon, ShieldIcon, BellIcon } from '../../components/common/Icons';
 
 export function AdminDashboardScreen({
   activeAdminTab,
@@ -19,25 +19,19 @@ export function AdminDashboardScreen({
   setAdminAlertsModalVisible?: (visible: boolean) => void;
   currentUser?: any;
 }) {
-  const { allRawPosts, reports, resolveReport, hidePost } = usePosts() as any;
+  const { allRawPosts, reports } = usePosts() as any;
 
   // Expanded Admin Panel states
   const [users, setUsers] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>({ aiModerationEnabled: true, flagThreshold: 3, registrationOpen: true });
-  const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [systemLogs, setSystemLogs] = useState<string[]>([]);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [recentBlocked, setRecentBlocked] = useState<any[]>([]);
-  const [filterType, setFilterType] = useState('All');
 
   useEffect(() => {
     async function loadAdminData() {
       try {
         const u = await apiService.adminFetchUsers();
         setUsers(u);
-        const s = await apiService.adminFetchSettings();
-        setSettings(s);
         const dbStats = await apiService.adminFetchDashboard();
         if (dbStats) {
           setDashboardStats(dbStats);
@@ -55,15 +49,6 @@ export function AdminDashboardScreen({
       }
     }
     loadAdminData();
-
-    // Generate initial realistic logs
-    setSystemLogs([
-      `[INFO] ${new Date().toISOString().substring(0, 19)} - GET /api/posts - Status 200`,
-      `[INFO] ${new Date().toISOString().substring(0, 19)} - POST /api/posts/react - Reaction registered`,
-      `[WARN] ${new Date().toISOString().substring(0, 19)} - GET /api/admin/reports - Access granted to ROLE_ADMIN`,
-      `[INFO] ${new Date().toISOString().substring(0, 19)} - GET /api/admin/users - Fetched 5 accounts`,
-      `[INFO] ${new Date().toISOString().substring(0, 19)} - PUT /api/admin/settings - Platform configurations loaded`,
-    ]);
   }, []);
 
   const pendingReports = reports.filter((r: any) => r.status === 'PENDING');
@@ -74,15 +59,6 @@ export function AdminDashboardScreen({
   const totalPostsVal = dashboardStats?.totalPosts ?? totalPosts;
   const blockedCountVal = dashboardStats?.totalBlockedContent ?? blockedCount;
   const totalUsersVal = dashboardStats?.totalUsers ?? (users.length || 24);
-
-
-
-  const addLogAction = (action: string) => {
-    setSystemLogs(prev => [
-      `[ACTION] ${new Date().toISOString().substring(0, 19)} - ${action}`,
-      ...prev
-    ]);
-  };
 
   const getRelativeTime = (dateStr: string) => {
     if (!dateStr) return 'Recently';
@@ -98,13 +74,7 @@ export function AdminDashboardScreen({
     }
   };
 
-  // Content Review: filter posts marked as hidden or reported
-  const hiddenContent = allRawPosts.filter((p: any) => p.hidden);
 
-  const mockFootprints = [
-    { username: 'banned_user', ip: '103.45.201.12', bannedAt: '2026-08-15 11:24', reason: 'Harassment & spamming' },
-    { username: 'spambot99', ip: '192.168.1.102', bannedAt: '2026-08-16 09:15', reason: 'Bot signatures detected' },
-  ];
 
   return (
     <View style={styles.feedContainer}>

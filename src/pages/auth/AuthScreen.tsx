@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, Alert, Image } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { COLORS, RADIUS, SHADOWS } from '../../styles/theme';
+import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
 import { LockIcon, ShieldIcon, MicIcon, LanguageIcon, FlagIcon, ProfileIcon, EyeIcon } from '../../components/common/Icons';
 import { AgreementCheckRow } from '../../components/common/AgreementCheckRow';
+import { apiService } from '../../services/apiService';
 
 // ── CUSTOM LIGHTWEIGHT VECTOR ICONS ──
 const MailIcon = ({ color = '#6F405F', size = 18 }) => (
@@ -30,6 +30,52 @@ const PhoneIcon = ({ color = '#6F405F', size = 18 }) => (
     </View>
   </View>
 );
+
+const LogInIcon = ({ color = '#FFFFFF', size = 16 }) => (
+  <View style={{ width: size, height: size, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
+    {/* Door bracket */}
+    <View style={{
+      position: 'absolute',
+      left: 2,
+      top: 1,
+      bottom: 1,
+      width: 6,
+      borderTopWidth: 1.8,
+      borderBottomWidth: 1.8,
+      borderLeftWidth: 1.8,
+      borderColor: color,
+      borderTopLeftRadius: 2,
+      borderBottomLeftRadius: 2,
+    }} />
+    {/* Arrow */}
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 4,
+    }}>
+      <View style={{ width: 8, height: 1.8, backgroundColor: color }} />
+      <View style={{
+        width: 5,
+        height: 5,
+        borderTopWidth: 1.8,
+        borderRightWidth: 1.8,
+        borderColor: color,
+        transform: [{ rotate: '45deg' }],
+        marginLeft: -4,
+      }} />
+    </View>
+  </View>
+);
+
+const KeyRoundIcon = ({ color = '#FFFFFF', size = 16 }) => (
+  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: size * 0.6, height: size * 0.6, borderWidth: 1.8, borderColor: color, borderRadius: size * 0.3 }} />
+    <View style={{ width: 1.8, height: size * 0.5, backgroundColor: color, position: 'absolute', bottom: 1 }} />
+    <View style={{ width: size * 0.3, height: 1.8, backgroundColor: color, position: 'absolute', bottom: 3, right: 3 }} />
+    <View style={{ width: size * 0.2, height: 1.8, backgroundColor: color, position: 'absolute', bottom: 6, right: 3 }} />
+  </View>
+);
+
 
 const EyeOffIcon = ({ color = '#8C8385', size = 18 }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -58,8 +104,8 @@ const EyeOffIcon = ({ color = '#8C8385', size = 18 }) => (
 export function AuthScreen() {
   const { login, register, verifyEmailOtp, resendEmailOtp } = useAuth() as any;
 
-  // Views: 'landing' | 'login' | 'register'
-  const [authView, setAuthView] = useState<'landing' | 'login' | 'register'>('landing');
+  // Views: 'landing' | 'login' | 'register' | 'forgot_password'
+  const [authView, setAuthView] = useState<'landing' | 'login' | 'register' | 'forgot_password'>('landing');
 
   // Input states
   const [fullName, setFullName] = useState('');
@@ -69,6 +115,14 @@ export function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Forgot Password flow states
+  const [forgotStep, setForgotStep] = useState(1); // 1: Request, 2: Verify, 3: Reset, 4: Success
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotResendTimer, setForgotResendTimer] = useState(0);
 
   // Checkbox agreement states (matching web)
   const [confirm18, setConfirm18] = useState(false);
@@ -93,14 +147,23 @@ export function AuthScreen() {
   const [contactMessage, setContactMessage] = useState('');
   const [contactLoading, setContactLoading] = useState(false);
 
+  // Input focus states for UI styling
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [fullNameFocused, setFullNameFocused] = useState(false);
+  const [mobileFocused, setMobileFocused] = useState(false);
+  const [emailSignupFocused, setEmailSignupFocused] = useState(false);
+  const [passwordSignupFocused, setPasswordSignupFocused] = useState(false);
+
   useEffect(() => {
-    if (resendTimer > 0) {
+    if (resendTimer > 0 || forgotResendTimer > 0) {
       const interval = setInterval(() => {
-        setResendTimer(prev => prev - 1);
+        if (resendTimer > 0) setResendTimer(prev => prev - 1);
+        if (forgotResendTimer > 0) setForgotResendTimer(prev => prev - 1);
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [resendTimer]);
+  }, [resendTimer, forgotResendTimer]);
 
   const canRegister = fullName.trim() && mobileNumber.trim() && email.trim() && password.trim() && confirm18 && acceptTerms && acceptGuidelines && !loading;
 
@@ -178,19 +241,22 @@ export function AuthScreen() {
       // Clean up signup details except email (which helps autofill)
       setFullName('');
       setMobileNumber('');
-      setPassword('');
       setConfirm18(false);
       setAcceptTerms(false);
       setAcceptGuidelines(false);
 
-      // Redirect user to the Login screen
-      goToView('login');
-
-      // Show a clear success message
-      Alert.alert(
-        'Registration Success',
-        'Your account has been registered and verified successfully! Please log in now using your credentials.'
-      );
+      // Auto login user matching web flow!
+      try {
+        await login(email.trim(), password);
+        setPassword('');
+      } catch (loginErr) {
+        setPassword('');
+        goToView('login');
+        Alert.alert(
+          'Registration Success',
+          'Your account has been registered and verified successfully! Please log in now using your credentials.'
+        );
+      }
     } catch (err: any) {
       setOtpError(err.message || 'Verification failed.');
     } finally {
@@ -213,75 +279,179 @@ export function AuthScreen() {
     }, 800);
   };
 
+  // Forgot Password flow handlers
+  const handleSendForgotOtp = async () => {
+    if (!forgotIdentifier.trim()) {
+      setErrorMsg('Please enter your email or mobile number.');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      await apiService.forgotPassword(forgotIdentifier.trim());
+      setForgotStep(2);
+      setForgotOtp('');
+      setForgotResendTimer(30);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Verification request failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyForgotOtp = async () => {
+    if (forgotOtp.length !== 6) {
+      setErrorMsg('Please enter the 6-digit OTP code.');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      await apiService.verifyForgotPasswordOtp(forgotIdentifier.trim(), forgotOtp.trim());
+      setForgotStep(3);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'OTP verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    if (!forgotNewPassword.trim() || !forgotConfirmPassword.trim()) {
+      setErrorMsg('Please fill in all fields.');
+      return;
+    }
+    if (forgotNewPassword.length < 8) {
+      setErrorMsg('New password must be at least 8 characters long.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setErrorMsg('Passwords do not match. Please check and try again.');
+      return;
+    }
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      await apiService.resetPassword(forgotIdentifier.trim(), forgotOtp.trim(), forgotNewPassword);
+      setForgotStep(4);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Password reset failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotResendOtp = async () => {
+    if (forgotResendTimer > 0) return;
+    try {
+      await apiService.forgotPassword(forgotIdentifier.trim());
+      setForgotResendTimer(30);
+      Alert.alert('OTP Resent', 'A new verification code has been sent.');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to resend recovery OTP.');
+    }
+  };
+
   // Switch view helpers
-  const goToView = (view: 'landing' | 'login' | 'register') => {
+  const goToView = (view: 'landing' | 'login' | 'register' | 'forgot_password') => {
     setErrorMsg('');
     setAuthView(view);
   };
 
-  // Custom Checkbox Row Component
-  const AgreementCheckRow = ({ checked, onPress, text }: { checked: boolean; onPress: () => void; text: string }) => (
-    <TouchableOpacity onPress={onPress} style={styles.checkRowContainer}>
-      <View style={[styles.checkboxBox, checked && styles.checkboxBoxChecked]}>
-        {checked && <Text style={styles.checkboxTick}>✓</Text>}
-      </View>
-      <Text style={styles.checkRowText}>{text}</Text>
-    </TouchableOpacity>
-  );
+
 
   if (authView === 'login') {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.authContainer}
+        style={[styles.authContainer, { backgroundColor: '#FCFAF9', justifyContent: 'center' }]}
       >
-        <View style={styles.authCard}>
-          <TouchableOpacity onPress={() => goToView('landing')} style={{ alignSelf: 'flex-start', marginBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FAF6F8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F1ECEF' }}>
-            <Text style={{ fontSize: 11, color: '#6F405F', fontWeight: 'bold' }}>← Back</Text>
+        {/* Background Decorative Ambient Blobs */}
+        <View style={{ position: 'absolute', top: -80, right: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: '#FAF1ED', opacity: 0.8, zIndex: 0 }} />
+        <View style={{ position: 'absolute', bottom: -100, left: -60, width: 260, height: 260, borderRadius: 130, backgroundColor: '#F5ECF0', opacity: 0.8, zIndex: 0 }} />
+        <View style={{ position: 'absolute', top: '35%', left: -90, width: 180, height: 180, borderRadius: 90, backgroundColor: '#FFFDF9', opacity: 0.6, zIndex: 0 }} />
+
+        <View style={[styles.authCard, { paddingVertical: 32, paddingHorizontal: 24, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.8)', zIndex: 1, shadowColor: '#6F405F', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 6 }]}>
+          {/* Back Pill Button */}
+          <TouchableOpacity
+            onPress={() => goToView('landing')}
+            style={{
+              alignSelf: 'flex-start',
+              marginBottom: 24,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              paddingHorizontal: 14,
+              paddingVertical: 7,
+              borderRadius: 100,
+              borderWidth: 1,
+              borderColor: '#E8E1E5',
+              elevation: 2,
+              shadowColor: '#000',
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              shadowOffset: { width: 0, height: 1 }
+            }}
+          >
+            <Text style={{ fontSize: 12, color: '#6F405F', fontWeight: '800' }}>← Back</Text>
           </TouchableOpacity>
           
+          {/* Logo Circle Container */}
           <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: '#FFFFFF',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 1.5,
+            borderColor: '#F1ECEF',
             shadowColor: '#6F405F',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.12,
-            shadowRadius: 8,
-            elevation: 4,
-            marginBottom: 16
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.14,
+            shadowRadius: 10,
+            elevation: 5,
+            marginBottom: 20
           }}>
-            <Image source={require('../../assets/logo.png')} style={{ width: 64, height: 64, borderRadius: 16 }} />
+            <Image source={require('../../assets/logo.png')} style={{ width: 46, height: 46, borderRadius: 10 }} />
           </View>
           
-          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Welcome Back</Text>
-          <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 24, textAlign: 'center', lineHeight: 16 }}>
+          <Text style={{ fontSize: 26, fontWeight: '900', color: '#6F405F', marginBottom: 8, letterSpacing: -0.5 }}>Welcome Back</Text>
+          <Text style={{ fontSize: 13, color: '#8C8385', marginBottom: 28, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 }}>
             Sign in to your account using your registered email or mobile number.
           </Text>
 
           {!!errorMsg && (
-            <View style={styles.errorBanner}>
+            <View style={[styles.errorBanner, { width: '100%', marginBottom: 18, borderRadius: 14 }]}>
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           )}
 
           {/* Email/Mobile Input Label */}
-          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
+          <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2 }}>
             Email Address or Mobile Number *
           </Text>
           
-          {/* Email/Mobile Input */}
+          {/* Email/Mobile Input Box */}
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             width: '100%',
-            height: 52,
-            borderWidth: 1.5,
-            borderColor: '#E8E1E5',
-            borderRadius: 14,
+            height: 54,
+            borderWidth: 1.8,
+            borderColor: emailFocused ? '#6F405F' : '#E8E1E5',
+            borderRadius: 16,
             paddingHorizontal: 16,
-            marginBottom: 14,
-            backgroundColor: '#FAF8F8',
+            marginBottom: 16,
+            backgroundColor: emailFocused ? '#FFFFFF' : '#FAF8F8',
+            shadowColor: '#6F405F',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: emailFocused ? 0.08 : 0,
+            shadowRadius: 4,
+            elevation: emailFocused ? 2 : 0,
           }}>
             <View style={{ width: 20, alignItems: 'center' }}>
-              <MailIcon color="#6F405F" size={18} />
+              {/^\d+$/.test(email.trim()) ? <PhoneIcon color={emailFocused ? '#6F405F' : '#A0909C'} size={18} /> : <MailIcon color={emailFocused ? '#6F405F' : '#A0909C'} size={18} />}
             </View>
             <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
             <TextInput
@@ -289,42 +459,53 @@ export function AuthScreen() {
               placeholderTextColor="#CEC7C5"
               value={email}
               onChangeText={setEmail}
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
               autoCapitalize="none"
               keyboardType="email-address"
-              style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+              style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
             />
           </View>
 
           {/* Password Input Label Row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 6, marginTop: 4 }}>
-            <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15' }}>Password *</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#2D1D15', letterSpacing: 0.2 }}>Password *</Text>
             <TouchableOpacity
               onPress={() => {
-                Alert.alert(
-                  'Password Reset Assistance',
-                  'To protect privacy on our anonymous platform, passwords cannot be reset automatically. If you lost your password, please contact safety support at support@awaazmanki.com with your registered email and mobile number.'
-                );
+                setErrorMsg('');
+                setForgotStep(1);
+                setForgotIdentifier('');
+                setForgotOtp('');
+                setForgotNewPassword('');
+                setForgotConfirmPassword('');
+                setForgotResendTimer(0);
+                goToView('forgot_password');
               }}
             >
-              <Text style={{ fontSize: 12, color: '#6F405F', fontWeight: '600', textDecorationLine: 'underline' }}>Forgot Password?</Text>
+              <Text style={{ fontSize: 12.5, color: '#6F405F', fontWeight: '700', textDecorationLine: 'underline' }}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Password Input */}
+          {/* Password Input Box */}
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             width: '100%',
-            height: 52,
-            borderWidth: 1.5,
-            borderColor: '#E8E1E5',
-            borderRadius: 14,
+            height: 54,
+            borderWidth: 1.8,
+            borderColor: passwordFocused ? '#6F405F' : '#E8E1E5',
+            borderRadius: 16,
             paddingHorizontal: 16,
-            marginBottom: 20,
-            backgroundColor: '#FAF8F8',
+            marginBottom: 26,
+            backgroundColor: passwordFocused ? '#FFFFFF' : '#FAF8F8',
+            shadowColor: '#6F405F',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: passwordFocused ? 0.08 : 0,
+            shadowRadius: 4,
+            elevation: passwordFocused ? 2 : 0,
           }}>
             <View style={{ width: 20, alignItems: 'center' }}>
-              <LockIcon color="#6F405F" size={18} />
+              <LockIcon color={passwordFocused ? '#6F405F' : '#A0909C'} size={18} />
             </View>
             <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
             <TextInput
@@ -332,8 +513,10 @@ export function AuthScreen() {
               placeholderTextColor="#CEC7C5"
               value={password}
               onChangeText={setPassword}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               secureTextEntry={!showPassword}
-              style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+              style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ paddingHorizontal: 4 }}>
               {showPassword ? <EyeIcon color="#6F405F" size={20} /> : <EyeOffIcon color="#8C8385" size={20} />}
@@ -344,29 +527,32 @@ export function AuthScreen() {
           <TouchableOpacity
             style={[{
               width: '100%',
-              height: 52,
+              height: 54,
               backgroundColor: '#6F405F',
-              borderRadius: 14,
+              borderRadius: 16,
               alignItems: 'center',
               justifyContent: 'center',
               shadowColor: '#6F405F',
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
+              shadowOpacity: 0.16,
               shadowRadius: 8,
               elevation: 4
-            }, loading && { opacity: 0.7 }]}
+            }, loading && { opacity: 0.8 }]}
             onPress={handleLoginSubmit}
             disabled={loading}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
-              {loading ? 'Signing In...' : '→] Sign In'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {!loading && <LogInIcon color="#FFFFFF" size={17} />}
+              <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15.5 }}>
+                {loading ? 'Signing In...' : 'Sign In'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* Switch auth button */}
-          <TouchableOpacity onPress={() => goToView('register')} style={{ marginTop: 20 }}>
+          <TouchableOpacity onPress={() => goToView('register')} style={{ marginTop: 24 }}>
             <Text style={{ color: '#8C8385', fontSize: 13, fontWeight: '600' }}>
-              Don't have an account? <Text style={{ color: '#6F405F', fontWeight: 'bold', textDecorationLine: 'underline' }}>Create Anonymous Account</Text>
+              Don't have an account? <Text style={{ color: '#6F405F', fontWeight: '800', textDecorationLine: 'underline' }}>Create Anonymous Account</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -378,152 +564,236 @@ export function AuthScreen() {
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.authContainer}
+        style={[styles.authContainer, { backgroundColor: '#FCFAF9', justifyContent: 'center' }]}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 20, width: '100%' }} showsVerticalScrollIndicator={false}>
-          <View style={styles.authCard}>
-            <TouchableOpacity onPress={() => goToView('landing')} style={{ alignSelf: 'flex-start', marginBottom: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FAF6F8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#F1ECEF' }}>
-              <Text style={{ fontSize: 11, color: '#6F405F', fontWeight: 'bold' }}>← Back</Text>
+        {/* Background Decorative Ambient Blobs */}
+        <View style={{ position: 'absolute', top: -80, right: -60, width: 220, height: 220, borderRadius: 110, backgroundColor: '#FAF1ED', opacity: 0.8, zIndex: 0 }} />
+        <View style={{ position: 'absolute', bottom: -100, left: -60, width: 260, height: 260, borderRadius: 130, backgroundColor: '#F5ECF0', opacity: 0.8, zIndex: 0 }} />
+        <View style={{ position: 'absolute', top: '35%', left: -90, width: 180, height: 180, borderRadius: 90, backgroundColor: '#FFFDF9', opacity: 0.6, zIndex: 0 }} />
+
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: 20, paddingBottom: 40, width: '100%' }} showsVerticalScrollIndicator={false} style={{ zIndex: 1, width: '100%' }}>
+          <View style={[styles.authCard, { paddingVertical: 32, paddingHorizontal: 24, borderRadius: 28, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.8)', shadowColor: '#6F405F', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 6 }]}>
+            {/* Back Pill Button */}
+            <TouchableOpacity
+              onPress={() => goToView('landing')}
+              style={{
+                alignSelf: 'flex-start',
+                marginBottom: 24,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 14,
+                paddingVertical: 7,
+                borderRadius: 100,
+                borderWidth: 1,
+                borderColor: '#E8E1E5',
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOpacity: 0.04,
+                shadowRadius: 3,
+                shadowOffset: { width: 0, height: 1 }
+              }}
+            >
+              <Text style={{ fontSize: 12, color: '#6F405F', fontWeight: '800' }}>← Back</Text>
             </TouchableOpacity>
             
+            {/* Logo Circle Container */}
             <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#FFFFFF',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderWidth: 1.5,
+              borderColor: '#F1ECEF',
               shadowColor: '#6F405F',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.12,
-              shadowRadius: 8,
-              elevation: 4,
-              marginBottom: 16
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.14,
+              shadowRadius: 10,
+              elevation: 5,
+              marginBottom: 20
             }}>
-              <Image source={require('../../assets/logo.png')} style={{ width: 64, height: 64, borderRadius: 16 }} />
+              <Image source={require('../../assets/logo.png')} style={{ width: 46, height: 46, borderRadius: 10 }} />
             </View>
             
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Create Account</Text>
-            <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 16, textAlign: 'center', lineHeight: 16 }}>
+            <Text style={{ fontSize: 26, fontWeight: '900', color: '#6F405F', marginBottom: 8, letterSpacing: -0.5 }}>Create Account</Text>
+            <Text style={{ fontSize: 13, color: '#8C8385', marginBottom: 20, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 }}>
               Your identity stays private. Your voice matters.
             </Text>
 
-            {/* Privacy Capsules Row */}
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20, width: '100%', justifyContent: 'center' }}>
-              <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#FAF6F8', borderWidth: 1, borderColor: '#F1ECEF' }}>
-                <Text style={{ fontSize: 11, color: '#6F405F', fontWeight: '600' }}>🔒 Real name private</Text>
+            {/* Privacy Capsules Column */}
+            <View style={{ gap: 8, marginBottom: 24, width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(110, 64, 95, 0.04)', borderWidth: 1, borderColor: 'rgba(110, 64, 95, 0.08)' }}>
+                <Text style={{ fontSize: 14 }}>🔒</Text>
+                <Text style={{ fontSize: 11.5, color: '#6F405F', fontWeight: '700', flex: 1 }}>Real name is kept 100% private</Text>
               </View>
-              <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: '#FAF6F8', borderWidth: 1, borderColor: '#F1ECEF' }}>
-                <Text style={{ fontSize: 11, color: '#6F405F', fontWeight: '600' }}>🎭 Anonymous handle</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, backgroundColor: 'rgba(110, 64, 95, 0.04)', borderWidth: 1, borderColor: 'rgba(110, 64, 95, 0.08)' }}>
+                <Text style={{ fontSize: 14 }}>🎭</Text>
+                <Text style={{ fontSize: 11.5, color: '#6F405F', fontWeight: '700', flex: 1 }}>Only anonymous handle visible to others</Text>
               </View>
             </View>
 
             {!!errorMsg && (
-              <View style={styles.errorBanner}>
+              <View style={[styles.errorBanner, { width: '100%', marginBottom: 18, borderRadius: 14 }]}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
             )}
 
-            {/* Full Name Input */}
+            {/* Full Name Input Label */}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2 }}>
+              Real Full Name (Kept Private) *
+            </Text>
+            
+            {/* Full Name Input Box */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               width: '100%',
-              height: 52,
-              borderWidth: 1.5,
-              borderColor: '#E8E1E5',
-              borderRadius: 14,
+              height: 54,
+              borderWidth: 1.8,
+              borderColor: fullNameFocused ? '#6F405F' : '#E8E1E5',
+              borderRadius: 16,
               paddingHorizontal: 16,
               marginBottom: 14,
-              backgroundColor: '#FAF8F8',
+              backgroundColor: fullNameFocused ? '#FFFFFF' : '#FAF8F8',
+              shadowColor: '#6F405F',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: fullNameFocused ? 0.08 : 0,
+              shadowRadius: 4,
+              elevation: fullNameFocused ? 2 : 0,
             }}>
               <View style={{ width: 20, alignItems: 'center' }}>
-                <ProfileIcon color="#6F405F" size={18} />
+                <ProfileIcon color={fullNameFocused ? '#6F405F' : '#A0909C'} size={18} />
               </View>
               <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
               <TextInput
-                placeholder="Full Name (private)"
+                placeholder="Your real name (kept private)"
                 placeholderTextColor="#CEC7C5"
                 value={fullName}
                 onChangeText={setFullName}
-                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                onFocus={() => setFullNameFocused(true)}
+                onBlur={() => setFullNameFocused(false)}
+                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
               />
             </View>
 
-            {/* Mobile Number Input */}
+            {/* Mobile Number Input Label */}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2, marginTop: 4 }}>
+              Mobile Number *
+            </Text>
+
+            {/* Mobile Number Input Box */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               width: '100%',
-              height: 52,
-              borderWidth: 1.5,
-              borderColor: '#E8E1E5',
-              borderRadius: 14,
+              height: 54,
+              borderWidth: 1.8,
+              borderColor: mobileFocused ? '#6F405F' : '#E8E1E5',
+              borderRadius: 16,
               paddingHorizontal: 16,
               marginBottom: 14,
-              backgroundColor: '#FAF8F8',
+              backgroundColor: mobileFocused ? '#FFFFFF' : '#FAF8F8',
+              shadowColor: '#6F405F',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: mobileFocused ? 0.08 : 0,
+              shadowRadius: 4,
+              elevation: mobileFocused ? 2 : 0,
             }}>
               <View style={{ width: 20, alignItems: 'center' }}>
-                <PhoneIcon color="#6F405F" size={18} />
+                <PhoneIcon color={mobileFocused ? '#6F405F' : '#A0909C'} size={18} />
               </View>
               <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
               <TextInput
-                placeholder="Mobile Number (private)"
+                placeholder="Enter mobile number"
                 placeholderTextColor="#CEC7C5"
                 value={mobileNumber}
                 onChangeText={setMobileNumber}
+                onFocus={() => setMobileFocused(true)}
+                onBlur={() => setMobileFocused(false)}
                 keyboardType="phone-pad"
                 maxLength={10}
-                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
               />
             </View>
 
-            {/* Email Input */}
+            {/* Email Input Label */}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2, marginTop: 4 }}>
+              Email Address *
+            </Text>
+
+            {/* Email Input Box */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               width: '100%',
-              height: 52,
-              borderWidth: 1.5,
-              borderColor: '#E8E1E5',
-              borderRadius: 14,
+              height: 54,
+              borderWidth: 1.8,
+              borderColor: emailSignupFocused ? '#6F405F' : '#E8E1E5',
+              borderRadius: 16,
               paddingHorizontal: 16,
               marginBottom: 14,
-              backgroundColor: '#FAF8F8',
+              backgroundColor: emailSignupFocused ? '#FFFFFF' : '#FAF8F8',
+              shadowColor: '#6F405F',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: emailSignupFocused ? 0.08 : 0,
+              shadowRadius: 4,
+              elevation: emailSignupFocused ? 2 : 0,
             }}>
               <View style={{ width: 20, alignItems: 'center' }}>
-                <MailIcon color="#6F405F" size={18} />
+                <MailIcon color={emailSignupFocused ? '#6F405F' : '#A0909C'} size={18} />
               </View>
               <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
               <TextInput
-                placeholder="Email Address"
+                placeholder="Enter e-mail id"
                 placeholderTextColor="#CEC7C5"
                 value={email}
                 onChangeText={setEmail}
+                onFocus={() => setEmailSignupFocused(true)}
+                onBlur={() => setEmailSignupFocused(false)}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
               />
             </View>
 
-            {/* Password Input */}
+            {/* Password Input Label */}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2, marginTop: 4 }}>
+              Create Password *
+            </Text>
+
+            {/* Password Input Box */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               width: '100%',
-              height: 52,
-              borderWidth: 1.5,
-              borderColor: '#E8E1E5',
-              borderRadius: 14,
+              height: 54,
+              borderWidth: 1.8,
+              borderColor: passwordSignupFocused ? '#6F405F' : '#E8E1E5',
+              borderRadius: 16,
               paddingHorizontal: 16,
-              marginBottom: 16,
-              backgroundColor: '#FAF8F8',
+              marginBottom: 20,
+              backgroundColor: passwordSignupFocused ? '#FFFFFF' : '#FAF8F8',
+              shadowColor: '#6F405F',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: passwordSignupFocused ? 0.08 : 0,
+              shadowRadius: 4,
+              elevation: passwordSignupFocused ? 2 : 0,
             }}>
               <View style={{ width: 20, alignItems: 'center' }}>
-                <LockIcon color="#6F405F" size={18} />
+                <LockIcon color={passwordSignupFocused ? '#6F405F' : '#A0909C'} size={18} />
               </View>
               <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
               <TextInput
-                placeholder="Password (min 8 chars)"
+                placeholder="Create a strong password"
                 placeholderTextColor="#CEC7C5"
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setPasswordSignupFocused(true)}
+                onBlur={() => setPasswordSignupFocused(false)}
                 secureTextEntry={!showPassword}
-                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', fontWeight: '600', padding: 0 }}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ paddingHorizontal: 4 }}>
                 {showPassword ? <EyeIcon color="#6F405F" size={20} /> : <EyeOffIcon color="#8C8385" size={20} />}
@@ -531,21 +801,33 @@ export function AuthScreen() {
             </View>
 
             {/* Checkboxes agreement list */}
-            <View style={{ width: '100%', marginBottom: 18 }}>
+            <View style={{ width: '100%', marginBottom: 20 }}>
               <AgreementCheckRow
                 checked={confirm18}
                 onPress={() => setConfirm18(!confirm18)}
-                text="I confirm I am 18 years or older"
+                text={
+                  <Text style={{ color: '#8C8385', fontSize: 12.5 }}>
+                    I confirm I am <Text style={{ fontWeight: 'bold', color: '#2D1D15' }}>18 years or older</Text>
+                  </Text>
+                }
               />
               <AgreementCheckRow
                 checked={acceptTerms}
                 onPress={() => setAcceptTerms(!acceptTerms)}
-                text="I accept the Terms & Conditions of use"
+                text={
+                  <Text style={{ color: '#8C8385', fontSize: 12.5 }}>
+                    I accept the <Text style={{ textDecorationLine: 'underline', color: '#6F405F', fontWeight: 'bold' }}>Terms & Conditions</Text>
+                  </Text>
+                }
               />
               <AgreementCheckRow
                 checked={acceptGuidelines}
                 onPress={() => setAcceptGuidelines(!acceptGuidelines)}
-                text="I agree to Community Guidelines and hate policy"
+                text={
+                  <Text style={{ color: '#8C8385', fontSize: 12.5 }}>
+                    I agree to <Text style={{ textDecorationLine: 'underline', color: '#6F405F', fontWeight: 'bold' }}>Guidelines</Text> and <Text style={{ textDecorationLine: 'underline', color: '#6F405F', fontWeight: 'bold' }}>Hate Speech Policy</Text>
+                  </Text>
+                }
               />
             </View>
 
@@ -553,29 +835,29 @@ export function AuthScreen() {
             <TouchableOpacity
               style={[{
                 width: '100%',
-                height: 52,
+                height: 54,
                 backgroundColor: '#6F405F',
-                borderRadius: 14,
+                borderRadius: 16,
                 alignItems: 'center',
                 justifyContent: 'center',
                 shadowColor: '#6F405F',
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
+                shadowOpacity: 0.16,
                 shadowRadius: 8,
                 elevation: 4
-              }, (!canRegister || loading) && { opacity: 0.5, backgroundColor: '#CEC7C5', shadowOpacity: 0, elevation: 0 }]}
+              }, (!canRegister || loading) && { opacity: 1, backgroundColor: '#c5bdc0', shadowOpacity: 0, elevation: 0 }]}
               onPress={handleRegisterSubmit}
               disabled={!canRegister || loading}
             >
-              <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
+              <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15.5 }}>
                 {loading ? 'Creating Account...' : 'Create Account'}
               </Text>
             </TouchableOpacity>
 
             {/* Switch auth button */}
-            <TouchableOpacity onPress={() => goToView('login')} style={{ marginTop: 20 }}>
+            <TouchableOpacity onPress={() => goToView('login')} style={{ marginTop: 24 }}>
               <Text style={{ color: '#8C8385', fontSize: 13, fontWeight: '600' }}>
-                Already have an account? <Text style={{ color: '#6F405F', fontWeight: 'bold' }}>Login</Text>
+                Already have an account? <Text style={{ color: '#6F405F', fontWeight: '800', textDecorationLine: 'underline' }}>Login</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -635,6 +917,341 @@ export function AuthScreen() {
             </View>
           </SafeAreaView>
         </Modal>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  if (authView === 'forgot_password') {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.authContainer}
+      >
+        <View style={styles.authCard}>
+          {/* Back Pill Button */}
+          {forgotStep !== 4 && (
+            <TouchableOpacity
+              onPress={() => {
+                if (forgotStep > 1) {
+                  setForgotStep(forgotStep - 1);
+                  setErrorMsg('');
+                } else {
+                  goToView('login');
+                }
+              }}
+              style={{
+                alignSelf: 'flex-start',
+                marginBottom: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#FAF6F8',
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: '#F1ECEF',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#6F405F', fontWeight: 'bold' }}>← Back</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* STEP 1: Enter Email or Mobile */}
+          {forgotStep === 1 && (
+            <>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Forgot Password</Text>
+              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 24, textAlign: 'center', lineHeight: 16 }}>
+                Enter your registered email address or mobile number to receive a 6-digit recovery OTP.
+              </Text>
+
+              {/* Email/Mobile Input Label */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
+                Email Address or Mobile Number *
+              </Text>
+              
+              {/* Email/Mobile Input */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                width: '100%',
+                height: 52,
+                borderWidth: 1.5,
+                borderColor: '#E8E1E5',
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                marginBottom: 20,
+                backgroundColor: '#FAF8F8',
+              }}>
+                <View style={{ width: 20, alignItems: 'center' }}>
+                  {/^\d+$/.test(forgotIdentifier.trim()) ? <PhoneIcon color="#6F405F" size={18} /> : <MailIcon color="#6F405F" size={18} />}
+                </View>
+                <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
+                <TextInput
+                  placeholder="Enter registered mail or mobile"
+                  placeholderTextColor="#CEC7C5"
+                  value={forgotIdentifier}
+                  onChangeText={(val) => { setForgotIdentifier(val); setErrorMsg(''); }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                />
+              </View>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[{
+                  width: '100%',
+                  height: 52,
+                  backgroundColor: '#6F405F',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 4
+                }, (!forgotIdentifier.trim() || loading) && { opacity: 0.7 }]}
+                onPress={handleSendForgotOtp}
+                disabled={!forgotIdentifier.trim() || loading}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {!loading && <KeyRoundIcon color="#FFFFFF" size={17} />}
+                  <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
+                    {loading ? 'Checking Account...' : 'Send Recovery OTP'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* STEP 2: Verify OTP */}
+          {forgotStep === 2 && (
+            <>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Verify OTP Code</Text>
+              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 24, textAlign: 'center', lineHeight: 16 }}>
+                Verification OTP sent to <Text style={{ color: '#6F405F', fontWeight: 'bold' }}>{forgotIdentifier}</Text>. Please enter the 6-digit code below.
+              </Text>
+
+              {/* OTP Input Label */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
+                6-Digit OTP Code *
+              </Text>
+              
+              {/* OTP Input */}
+              <TextInput
+                maxLength={6}
+                keyboardType="number-pad"
+                value={forgotOtp}
+                onChangeText={(val) => { setForgotOtp(val.replace(/\D/g, '')); setErrorMsg(''); }}
+                placeholder="Enter OTP"
+                placeholderTextColor="#CEC7C5"
+                style={{
+                  width: '100%',
+                  height: 52,
+                  borderWidth: 1.5,
+                  borderColor: '#E8E1E5',
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  marginBottom: 16,
+                  backgroundColor: '#FAF8F8',
+                  fontSize: 18,
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  letterSpacing: 4,
+                  color: '#2D1D15'
+                }}
+              />
+
+              {/* Resend Cooldown Section */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, color: '#8C8385' }}>Didn't receive code?</Text>
+                <TouchableOpacity
+                  onPress={handleForgotResendOtp}
+                  disabled={forgotResendTimer > 0 || loading}
+                >
+                  <Text style={{
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    color: forgotResendTimer > 0 ? '#CEC7C5' : '#6F405F',
+                    textDecorationLine: 'underline'
+                  }}>
+                    {forgotResendTimer > 0 ? `Resend (${forgotResendTimer}s)` : 'Resend OTP'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[{
+                  width: '100%',
+                  height: 52,
+                  backgroundColor: '#6F405F',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 4
+                }, (forgotOtp.length !== 6 || loading) && { opacity: 0.7 }]}
+                onPress={handleVerifyForgotOtp}
+                disabled={forgotOtp.length !== 6 || loading}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
+                  {loading ? 'Verifying...' : 'Verify & Continue'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* STEP 3: Reset Password */}
+          {forgotStep === 3 && (
+            <>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Reset Password</Text>
+              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 24, textAlign: 'center', lineHeight: 16 }}>
+                Enter a new strong password below.
+              </Text>
+
+              {/* New Password Label */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
+                New Password *
+              </Text>
+              
+              {/* New Password Input */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                width: '100%',
+                height: 52,
+                borderWidth: 1.5,
+                borderColor: '#E8E1E5',
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                marginBottom: 14,
+                backgroundColor: '#FAF8F8',
+              }}>
+                <View style={{ width: 20, alignItems: 'center' }}>
+                  <LockIcon color="#6F405F" size={18} />
+                </View>
+                <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
+                <TextInput
+                  placeholder="Enter new password"
+                  placeholderTextColor="#CEC7C5"
+                  value={forgotNewPassword}
+                  onChangeText={(val) => { setForgotNewPassword(val); setErrorMsg(''); }}
+                  secureTextEntry={!showPassword}
+                  style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ paddingHorizontal: 4 }}>
+                  {showPassword ? <EyeIcon color="#6F405F" size={20} /> : <EyeOffIcon color="#8C8385" size={20} />}
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Password Label */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
+                Confirm Password *
+              </Text>
+
+              {/* Confirm Password Input */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                width: '100%',
+                height: 52,
+                borderWidth: 1.5,
+                borderColor: '#E8E1E5',
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                marginBottom: 20,
+                backgroundColor: '#FAF8F8',
+              }}>
+                <View style={{ width: 20, alignItems: 'center' }}>
+                  <LockIcon color="#6F405F" size={18} />
+                </View>
+                <View style={{ width: 1, height: 20, backgroundColor: '#EADBE4', marginHorizontal: 12 }} />
+                <TextInput
+                  placeholder="Confirm new password"
+                  placeholderTextColor="#CEC7C5"
+                  value={forgotConfirmPassword}
+                  onChangeText={(val) => { setForgotConfirmPassword(val); setErrorMsg(''); }}
+                  secureTextEntry={!showPassword}
+                  style={{ flex: 1, height: '100%', fontSize: 14, color: '#2D1D15', padding: 0 }}
+                />
+              </View>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[{
+                  width: '100%',
+                  height: 52,
+                  backgroundColor: '#6F405F',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 4
+                }, (!forgotNewPassword.trim() || !forgotConfirmPassword.trim() || loading) && { opacity: 0.7 }]}
+                onPress={handleResetPasswordSubmit}
+                disabled={!forgotNewPassword.trim() || !forgotConfirmPassword.trim() || loading}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
+                  {loading ? 'Resetting Password...' : 'Reset Password'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* STEP 4: Success Screen */}
+          {forgotStep === 4 && (
+            <>
+              <View style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: '#DCFCE7',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 16,
+                marginTop: 10
+              }}>
+                <Text style={{ color: '#15803D', fontSize: 28, fontWeight: 'bold' }}>✓</Text>
+              </View>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#6F405F', marginBottom: 6 }}>Password Reset Success</Text>
+              <Text style={{ fontSize: 12, color: '#8C8385', marginBottom: 24, textAlign: 'center', lineHeight: 18 }}>
+                Your password has been reset successfully. You can now log in with your new password.
+              </Text>
+
+              {/* Back to Login button */}
+              <TouchableOpacity
+                style={{
+                  width: '100%',
+                  height: 52,
+                  backgroundColor: '#6F405F',
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 8,
+                  elevation: 4
+                }}
+                onPress={() => {
+                  goToView('login');
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }}>
+                  Back to Login
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </KeyboardAvoidingView>
     );
   }
