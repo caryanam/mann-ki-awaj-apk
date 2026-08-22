@@ -144,7 +144,7 @@ function generateUsernameSuggestions(count = 4) {
     attempts++;
     const p = USERNAME_PREFIXES[Math.floor(Math.random() * USERNAME_PREFIXES.length)];
     const n = USERNAME_NOUNS[Math.floor(Math.random() * USERNAME_NOUNS.length)];
-    
+
     const num = Math.floor(Math.random() * 90) + 10;
     const uname = attempts % 2 === 0 ? `@${p}${n}` : `@${p}${n}${num}`;
     suggestions.add(uname);
@@ -575,8 +575,8 @@ export function ProfileSetupScreen() {
                       backgroundColor: submitting
                         ? '#6F405F'
                         : bio.trim().length < 5
-                        ? '#F3EEF1'
-                        : '#6F405F',
+                          ? '#F3EEF1'
+                          : '#6F405F',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}

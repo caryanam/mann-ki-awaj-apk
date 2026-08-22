@@ -87,14 +87,37 @@ export function mapPost(post) {
   if (!post) return null;
 
   const formattedUname = resolveUsername(post);
+  const postId = post.id || post.postId;
+  let detectedSubtopic = post.subtopic || post.topic || post.category;
+
+  if (postId) {
+    try {
+      const map = JSON.parse(localStorage.getItem('mka_subtopic_map') || '{}');
+      if (map[String(postId)]) {
+        detectedSubtopic = map[String(postId)];
+      }
+    } catch (e) {}
+  }
+
+  const rawContent = post.content || post.originalContent || '';
+  const hashtagMatch = rawContent.match(/#([A-Z0-9_]+)/i);
+  if (hashtagMatch && hashtagMatch[1]) {
+    const matchStr = hashtagMatch[1].toUpperCase();
+    if (matchStr !== 'GENERAL' && matchStr !== 'TEXT' && matchStr !== 'IMAGE') {
+      detectedSubtopic = matchStr;
+    }
+  }
+
+  const finalTopic = (detectedSubtopic || post.topic || 'GENERAL').toUpperCase();
 
   return {
     ...post,
-    id: post.id || post.postId || `post_${Date.now()}`,
+    id: postId || `post_${Date.now()}`,
     originalTitle: post.originalTitle || post.title || '',
     translatedTitle: post.translatedTitle || post.title || '',
     title: post.translatedTitle || post.title || '',
-    topic: mapBackendTopicToUI(post.topic || post.category),
+    topic: finalTopic,
+    subtopic: finalTopic,
     postType: post.postType || 'Thought',
     originalContent: post.originalContent || post.content || '',
     translatedContent: post.translatedContent || post.originalContent || post.content || '',
@@ -118,16 +141,40 @@ export function mapPost(post) {
   };
 }
 
+export function sanitizeEncodedSymbols(str) {
+  if (!str || typeof str !== 'string') return str;
+  let clean = str;
+  if (clean.includes('%')) {
+    try {
+      clean = decodeURIComponent(clean);
+    } catch (e) {}
+  }
+  return clean
+    .replace(/%2सी/gi, ',')
+    .replace(/%3एफ/gi, '?')
+    .replace(/%2स/gi, ',')
+    .replace(/%3ए/gi, '?')
+    .replace(/%2C/gi, ',')
+    .replace(/%3F/gi, '?')
+    .replace(/%21/gi, '!')
+    .replace(/%20/g, ' ')
+    .replace(/%3([Ff]|एफ)?/gi, '?')
+    .replace(/%2([Cc]|सी)?/gi, ',');
+}
+
 export function mapComment(comment) {
   if (!comment) return null;
 
   const formattedUname = resolveUsername(comment);
+  const rawContent = sanitizeEncodedSymbols(comment.originalContent || comment.content || '');
+  const rawTranslated = comment.translatedContent ? sanitizeEncodedSymbols(comment.translatedContent) : null;
 
   return {
     ...comment,
-    originalContent: comment.originalContent || comment.content || '',
-    translatedContent: comment.translatedContent || comment.originalContent || comment.content || '',
-    content: comment.translatedContent || comment.originalContent || comment.content || '',
+    originalContent: rawContent,
+    translatedContent: rawTranslated,
+    displayLanguage: comment.displayLanguage || comment.originalLanguage || 'EN',
+    content: rawTranslated || rawContent || '',
     username: formattedUname,
     avatarInitials: comment.avatarInitials || formattedUname.replace('@', '').slice(0, 2).toUpperCase(),
     avatarConfig: comment.authorAvatar || comment.avatarConfig || null,

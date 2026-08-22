@@ -192,10 +192,17 @@ export const apiService = {
   },
 
   async createPost(postData) {
+    const subtopicTag = (postData.topic || 'GENERAL').toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    let contentToSubmit = postData.content || '';
+
+    if (subtopicTag !== 'GENERAL' && !contentToSubmit.toUpperCase().includes(`#${subtopicTag}`)) {
+      contentToSubmit = `#${subtopicTag}\n${contentToSubmit}`;
+    }
+
     const payload = {
       title: postData.title || '',
-      content: postData.content,
-      topic: toBackendTopic(postData.topic),
+      content: contentToSubmit,
+      topic: toBackendTopic(subtopicTag),
       type: toBackendPostType(postData.postType || 'Thought', !!postData.imageUrl),
       originalLanguage: 'EN',
       imageUrl: postData.imageUrl || null,
@@ -205,7 +212,15 @@ export const apiService = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    return res?.success ? mapPost(res.data || res) : null;
+    const resData = res?.success ? (res.data || res) : null;
+    if (resData && resData.id) {
+      try {
+        const map = JSON.parse(localStorage.getItem('mka_subtopic_map') || '{}');
+        map[String(resData.id)] = subtopicTag;
+        localStorage.setItem('mka_subtopic_map', JSON.stringify(map));
+      } catch (e) {}
+    }
+    return resData ? mapPost(resData) : null;
   },
 
   async reactToPost(postId, reactionType) {
@@ -257,11 +272,13 @@ export const apiService = {
           contentType: r.contentType || 'POST',
           reportedContent: r.reportedContent || '',
           authorUsername: r.authorUsername || '@anonymous',
+          reporterUsername: r.reporterUsername || 'admin',
           reason: r.reason || 'Flagged Content',
           reporterNotes: r.reporterNotes || '',
           status: r.status || 'PENDING',
           actionTaken: r.actionTaken || null,
           adminNotes: r.adminNotes || '',
+          riskLevel: r.riskLevel || 'MEDIUM',
         }));
       }
       return [];
@@ -534,59 +551,23 @@ export const apiService = {
   },
 
   // ── NEW EXTENDED ENDPOINTS: TRANSLATION ──
-  async translateText(text, targetLang, sourceLang = 'EN') {
-    const mapLang = (l) => {
-      if (!l) return 'English';
-      const clean = l.trim().toUpperCase();
-      const codeMap = {
-        EN: 'English',
-        HI: 'Hindi',
-        MR: 'Marathi',
-        GU: 'Gujarati',
-        PA: 'Punjabi',
-        TA: 'Tamil',
-        TE: 'Telugu',
-        BN: 'Bengali',
-        KN: 'Kannada',
-        ML: 'Malayalam',
-        OR: 'Odia',
-        AS: 'Assamese',
-        UR: 'Urdu',
-        SAT: 'Santali',
-        KS: 'Kashmiri',
-        MNI: 'Manipuri',
-        DOI: 'Dogri',
-        BHO: 'Bhojpuri',
-        AUTO: 'Auto Detect',
-      };
-      return codeMap[clean] || l;
-    };
-
-    const target = mapLang(targetLang);
-    const source = mapLang(sourceLang);
-
-    console.log('[apiService] translateText mapping:', {
-      inputTarget: targetLang,
-      mappedTarget: target,
-      inputSource: sourceLang,
-      mappedSource: source,
-      text: text.substring(0, 60),
-    });
+  async translateText(text, targetLang, sourceLang = 'auto') {
+    const tgtCode = (targetLang || 'EN').trim().toUpperCase();
+    const srcCode = (sourceLang || 'auto').trim().toUpperCase();
 
     try {
       const res = await request('/api/v1/translation/translate', {
         method: 'POST',
         body: JSON.stringify({
           text: text.trim(),
-          sourceLanguage: source,
-          targetLanguage: target,
+          sourceLanguage: srcCode === 'AUTO' ? 'auto' : srcCode,
+          targetLanguage: tgtCode,
         }),
       });
-      console.log('[apiService] Translation response:', res);
-      return res?.translatedText || res?.data?.translatedText || text;
+      return res?.translatedText || res?.data?.translatedText || null;
     } catch (err) {
       console.warn('[apiService] Dynamic translation failed:', err.message);
-      return text;
+      return null;
     }
   },
 
@@ -875,5 +856,123 @@ export const apiService = {
     });
     const data = await res.json();
     return data;
+  },
+
+  async getTopics() {
+    try {
+      const response = await request('/api/topics');
+      const data = response?.data || response || [];
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('[apiService] getTopics network/DB fallback notice:', err.message);
+      return [];
+    }
+  },
+
+  async createTopic(topicData) {
+    try {
+      const payload = {
+        name: topicData.name || topicData.topicName,
+        icon: topicData.icon || '💡',
+        createdByUsername: topicData.createdByUsername || '@anonymous',
+      };
+      const response = await request('/api/topics', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return response?.data || response;
+    } catch (err) {
+      console.warn('[apiService] createTopic DB persist notice:', err.message);
+      return null;
+    }
+  },
+
+  // Admin Enquiries Portal Operations
+  async adminFetchEnquiries() {
+    try {
+      const res = await request('/api/admin/enquiries');
+      return res?.data || res || [];
+    } catch (err) {
+      console.warn('[apiService] Failed to fetch admin enquiries:', err.message);
+      return [];
+    }
+  },
+
+  async adminUpdateEnquiryStatus(id, status, adminNotes) {
+    try {
+      const res = await request(`/api/admin/enquiries/${id}/status?status=${status}&adminNotes=${encodeURIComponent(adminNotes || '')}`, {
+        method: 'PUT'
+      });
+      return res?.success || false;
+    } catch (err) {
+      console.warn('[apiService] Failed to update admin enquiry status:', err.message);
+      return false;
+    }
+  },
+
+  async adminDeleteEnquiry(id) {
+    try {
+      const res = await request(`/api/admin/enquiries/${id}`, {
+        method: 'DELETE'
+      });
+      return res?.success || false;
+    } catch (err) {
+      console.warn('[apiService] Failed to delete admin enquiry:', err.message);
+      return false;
+    }
+  },
+
+  async getMoodOfIndia() {
+    try {
+      const res = await request('/api/mood/india');
+      if (res && res.data) return res;
+      throw new Error('Fallback to mock');
+    } catch (err) {
+      const userMood = localStorage.getItem('mka_mock_user_mood') || null;
+      let moodCounts = {};
+      try {
+        moodCounts = JSON.parse(localStorage.getItem('mka_mock_mood_votes') || '{}');
+      } catch (e) {}
+      let totalVotes = 0;
+      Object.values(moodCounts).forEach(cnt => { totalVotes += (Number(cnt) || 0); });
+      return { success: true, data: { userMood, totalVotes, moodCounts } };
+    }
+  },
+
+  async voteMood(mood) {
+    try {
+      const res = await request(`/api/mood/india?mood=${encodeURIComponent(mood)}`, {
+        method: 'POST'
+      });
+      if (res && res.data) return res;
+      throw new Error('Fallback to mock');
+    } catch (err) {
+      try {
+        let userMood = localStorage.getItem('mka_mock_user_mood') || null;
+        let moodCounts = JSON.parse(localStorage.getItem('mka_mock_mood_votes') || '{}');
+        const cleanMood = mood ? mood.trim().toUpperCase() : '';
+
+        if (userMood && moodCounts[userMood] > 0) {
+          moodCounts[userMood] = Math.max(0, moodCounts[userMood] - 1);
+        }
+
+        if (userMood === cleanMood) {
+          userMood = null;
+          localStorage.removeItem('mka_mock_user_mood');
+        } else {
+          userMood = cleanMood;
+          moodCounts[cleanMood] = (moodCounts[cleanMood] || 0) + 1;
+          localStorage.setItem('mka_mock_user_mood', cleanMood);
+        }
+
+        localStorage.setItem('mka_mock_mood_votes', JSON.stringify(moodCounts));
+        let totalVotes = 0;
+        Object.values(moodCounts).forEach(cnt => { totalVotes += (Number(cnt) || 0); });
+
+        return { success: true, data: { userMood, totalVotes, moodCounts } };
+      } catch (e) {
+        return { success: true, data: { userMood: null, totalVotes: 0, moodCounts: {} } };
+      }
+    }
   },
 };

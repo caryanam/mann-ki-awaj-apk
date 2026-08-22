@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ALL_SUBTOPIC_IDS, getCustomTopics } from '../../utils/topicUtils';
+import { moderationCheck } from '../../utils/moderationCheck';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal, SafeAreaView, Platform, PermissionsAndroid, ActivityIndicator, Image } from 'react-native';
 import { usePosts } from '../../context/PostContext';
 import { useAuth } from '../../context/AuthContext';
@@ -68,14 +70,14 @@ const requestCameraPermission = async () => {
   return true;
 };
 
-export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
+export function CreatePostScreen({ onPostCreated, initialTopic }: { onPostCreated: (status?: string) => void; initialTopic?: string }) {
   const { createPost } = usePosts() as any;
   const { currentUser } = useAuth() as any;
-  const { t } = useLanguage() as any;
+  const { t, currentLanguage } = useLanguage() as any;
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [topic, setTopic] = useState('Life');
+  const [topic, setTopic] = useState(initialTopic || 'GENERAL');
   const [postType, setPostType] = useState('Thought');
   const [isRecording, setIsRecording] = useState(false);
 
@@ -83,24 +85,62 @@ export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
   const [imageUrl, setImageUrl] = useState('');
   const [allowComments, setAllowComments] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const topics = ['Life', 'Career', 'Relationships', 'Education', 'Student Life', 'Personal Growth', 'Workplace', 'Parenting', 'Technology', 'Creativity', 'Books', 'Entertainment', 'Financial Experiences', 'Positive Thoughts'];
+  useEffect(() => {
+    if (initialTopic) {
+      setTopic(initialTopic);
+    }
+  }, [initialTopic]);
+
+  // Load standard subtopic IDs + custom topics from local storage
+  const availableTopics = useMemo(() => {
+    const list = [...ALL_SUBTOPIC_IDS];
+    const custom = getCustomTopics();
+    custom.forEach((ct: any) => {
+      const ctName = typeof ct === 'string' ? ct : (ct.name || ct.id);
+      if (ctName && !list.includes(ctName)) {
+        list.push(ctName);
+      }
+    });
+    return list;
+  }, []);
+
   const postTypes = ['Thought', 'Question', 'Experience', 'Need Advice', 'Confession', 'Something I Learned', 'Positive Note', 'Personal Challenge'];
 
-  const handlePublish = () => {
-    if (!content.trim()) { return; }
-    createPost({ title, content, topic, postType, imageUrl, allowComments }, currentUser);
-    setTitle('');
-    setContent('');
-    setImageUrl('');
-    setAllowComments(true);
-    onPostCreated();
+  // Content moderation checks matching Web CreatePostPage
+  const fullText = `${title} ${content}`;
+  const modResult = moderationCheck(fullText);
+  const isBlocked = modResult.status === 'BLOCKED';
+
+  const handlePublish = async () => {
+    if (!content.trim() || submitting || isBlocked || uploadingImage) { return; }
+
+    setSubmitting(true);
+    try {
+      const newPost = await createPost({ title, content, topic, postType, imageUrl, allowComments }, currentUser);
+      setTitle('');
+      setContent('');
+      setImageUrl('');
+      setTopic(initialTopic || 'GENERAL');
+      setPostType('Thought');
+      setAllowComments(true);
+      onPostCreated(newPost?.status);
+    } catch (err: any) {
+      console.warn('Publish post error:', err);
+      Alert.alert('Publish Failed', 'Failed to publish post. Please check your network and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClear = () => {
     setTitle('');
     setContent('');
     setImageUrl('');
+    setTopic(initialTopic || 'GENERAL');
+    setPostType('Thought');
     setAllowComments(true);
   };
 
@@ -260,7 +300,7 @@ export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
 
       if (resultUri) {
         Alert.alert('Processing', 'Transcribing your voice...');
-        const transcribed = await apiService.voiceToText(resultUri, 'EN');
+        const transcribed = await apiService.voiceToText(resultUri, currentLanguage || 'EN');
         if (transcribed) {
           setContent(prev => prev ? `${prev} ${transcribed}` : transcribed);
           Alert.alert('Speech-to-Text Success', `Transcribed: "${transcribed}"`);
@@ -321,14 +361,14 @@ export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
 
           <Text style={styles.fieldLabel}>{t('contentTopic', 'Content Topic')}</Text>
           <View style={[styles.pickerRow, { marginBottom: 16 }]}>
-            {topics.map(topicItem => (
+            {availableTopics.map(topicItem => (
               <TouchableOpacity
                 key={topicItem}
                 style={[styles.pickerChip, { borderRadius: 18, borderWidth: 1.5, borderColor: topic === topicItem ? '#6F405F' : '#E8E1E5', backgroundColor: topic === topicItem ? 'rgba(111, 64, 95, 0.08)' : '#FFFFFF' }]}
                 onPress={() => setTopic(topicItem)}
               >
                 <Text style={[{ fontSize: 12, fontWeight: 'bold', color: topic === topicItem ? '#6F405F' : '#8C8385' }]}>
-                  {topicItem}
+                  #{t(topicItem, topicItem)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -481,38 +521,81 @@ export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
             </Text>
           </TouchableOpacity>
 
+          {/* Moderation Warning Banner */}
+          {modResult.status !== 'SAFE' && (
+            <View style={{
+              backgroundColor: modResult.status === 'BLOCKED' ? 'rgba(196, 111, 118, 0.12)' : 'rgba(217, 108, 61, 0.12)',
+              borderWidth: 1.5,
+              borderColor: modResult.status === 'BLOCKED' ? 'rgba(196, 111, 118, 0.4)' : 'rgba(217, 108, 61, 0.4)',
+              borderRadius: 12,
+              padding: 12,
+              marginTop: 10,
+              marginBottom: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <Text style={{ fontSize: 16 }}>🛡️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: modResult.status === 'BLOCKED' ? '#C46F76' : '#D96C3D' }}>
+                  {modResult.status === 'BLOCKED' ? 'Content Restricted' : 'Revise Sensitive Subject'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2, lineHeight: 15 }}>
+                  {modResult.message} {modResult.explanation || ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Actions Row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-            <TouchableOpacity
-              onPress={handleClear}
-              style={{
-                paddingVertical: 12,
-                paddingHorizontal: 20,
-                borderRadius: 12,
-                borderWidth: 1.5,
-                borderColor: '#E8E1E5',
-                backgroundColor: '#FAF8F8',
-              }}
-            >
-              <Text style={{ fontSize: 13.5, fontWeight: 'bold', color: '#8C8385' }}>Clear</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                onPress={handleClear}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: '#E8E1E5',
+                  backgroundColor: '#FAF8F8',
+                }}
+              >
+                <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#8C8385' }}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setIsPreviewOpen(true)}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: '#E8E1E5',
+                  backgroundColor: '#FAF8F8',
+                }}
+              >
+                <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F' }}>Preview</Text>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
               onPress={handlePublish}
-              disabled={!content.trim()}
+              disabled={!content.trim() || isBlocked || submitting || uploadingImage}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                paddingVertical: 12,
-                paddingHorizontal: 24,
+                paddingVertical: 10,
+                paddingHorizontal: 18,
                 borderRadius: 12,
-                backgroundColor: content.trim() ? '#6F405F' : '#F3EEF1',
-                minWidth: 140,
+                backgroundColor: (content.trim() && !isBlocked && !submitting && !uploadingImage) ? '#6F405F' : '#F3EEF1',
               }}
             >
-              <Text style={{ fontSize: 13.5, fontWeight: 'bold', color: content.trim() ? '#FFFFFF' : '#A58BA0' }}>Publish Post</Text>
+              {submitting && <ActivityIndicator size="small" color="#A58BA0" style={{ marginRight: 4 }} />}
+              <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: (content.trim() && !isBlocked && !submitting && !uploadingImage) ? '#FFFFFF' : '#A58BA0' }}>
+                {submitting ? 'Publishing...' : isBlocked ? 'Blocked' : 'Publish Post'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -592,8 +675,65 @@ export function CreatePostScreen({ onPostCreated }: { onPostCreated: any }) {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Post Preview Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isPreviewOpen}
+        onRequestClose={() => setIsPreviewOpen(false)}
+      >
+        <SafeAreaView style={styles.centerModalOverlay}>
+          <View style={[styles.reportModalCard, { width: '90%', maxHeight: '80%' }]}>
+            <Text style={styles.reportModalTitle}>📝 Post Preview</Text>
+            
+            <ScrollView contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={true}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                <View style={{ backgroundColor: 'rgba(111,64,95,0.1)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#6F405F' }}>{postType}</Text>
+                </View>
+                <View style={{ backgroundColor: '#FAF6F8', borderWidth: 1, borderColor: '#EFEAE8', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#8C8385' }}>#{topic}</Text>
+                </View>
+              </View>
+
+              {title ? (
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2D1D15', marginBottom: 8 }}>{title}</Text>
+              ) : null}
+              
+              <Text style={{ fontSize: 13.5, color: '#4A3E3D', lineHeight: 18 }}>
+                {content || '[Your content will appear here]'}
+              </Text>
+
+              {imageUrl ? (
+                <View style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1.5, borderColor: '#EFEAE8' }}>
+                  <Image
+                    source={{ uri: imageUrl.startsWith('http') ? imageUrl : `https://api.awaazmanki.com${imageUrl}` }}
+                    style={{ width: '100%', height: 160, resizeMode: 'cover' }}
+                  />
+                </View>
+              ) : null}
+            </ScrollView>
+
+            <View style={{ borderTopWidth: 1, borderTopColor: '#F0ECEB', paddingTop: 12, marginTop: 8 }}>
+              <TouchableOpacity
+                onPress={() => setIsPreviewOpen(false)}
+                style={{
+                  width: '100%',
+                  backgroundColor: '#FAF8F8',
+                  borderWidth: 1.5,
+                  borderColor: '#E8E1E5',
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#8C8385' }}>Close Preview</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
-
-// â”€â”€ DIRECT MESSAGES SCREEN â”€â”€

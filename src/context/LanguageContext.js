@@ -34,7 +34,9 @@ export function LanguageProvider({ children }) {
         }
 
         if (preferred) {
-          const langObj = SUPPORTED_LANGUAGES.find(l => l.label === preferred);
+          const langObj = SUPPORTED_LANGUAGES.find(
+            l => l.label.toLowerCase() === preferred.toLowerCase() || l.code.toLowerCase() === preferred.toLowerCase()
+          );
           const normalized = langObj ? langObj.code : 'EN';
           setCurrentLanguage(normalized);
         }
@@ -44,30 +46,26 @@ export function LanguageProvider({ children }) {
       }
     }
     syncLanguage();
-  }, [currentUser]);
+  }, [currentUser, lastSyncedUserId]);
 
   const changeLanguage = async (langCode) => {
     if (!langCode || langCode === currentLanguage) return;
 
     setCurrentLanguage(langCode);
 
-    // Normalize code for backend dynamically from SUPPORTED_LANGUAGES
-    const langObj = SUPPORTED_LANGUAGES.find(l => l.code === langCode);
-    const backendLang = langObj ? langObj.label : 'English';
-
     try {
       const token = localStorage.getItem('auth_token');
       if (token && !token.startsWith('mock')) {
-        await apiService.updateLanguage(backendLang);
+        await apiService.updateLanguage(langCode);
       }
       
       // Update local profile preferredLanguage if user is logged in
       if (currentUser && updateProfile) {
         const updatedProfile = { 
           ...(currentUser.profile || {}), 
-          preferredLanguage: backendLang 
+          preferredLanguage: langCode 
         };
-        updateProfile({ profile: updatedProfile, preferredLanguage: backendLang });
+        updateProfile({ profile: updatedProfile, preferredLanguage: langCode });
       }
     } catch (err) {
       console.warn('[LanguageContext] Failed to update language on backend:', err.message);
@@ -100,7 +98,9 @@ export function LanguageProvider({ children }) {
 
     try {
       const result = await apiTranslationService.translateText(text, targetLang, sourceLang);
-      setTranslationCache(prev => ({ ...prev, [cacheKey]: result }));
+      if (result && result.trim() && result !== text) {
+        setTranslationCache(prev => ({ ...prev, [cacheKey]: result }));
+      }
       return result;
     } catch (err) {
       console.warn('[LanguageContext] Async translation failed:', err.message);
@@ -111,6 +111,17 @@ export function LanguageProvider({ children }) {
   const translateText = (text, targetLang = currentLanguage, sourceLang = null) => {
     if (!text || !text.trim()) return text;
     
+    // Check if there is an exact or normalized static translation in the dictionary first
+    const keyCandidate = text.replace(/\s+/g, '');
+    const staticTranslation = t(keyCandidate) || t(keyCandidate.toLowerCase()) || t(text) || t(text.toLowerCase());
+    if (staticTranslation && 
+        staticTranslation !== keyCandidate && 
+        staticTranslation !== keyCandidate.toLowerCase() && 
+        staticTranslation !== text && 
+        staticTranslation !== text.toLowerCase()) {
+      return staticTranslation;
+    }
+
     const cacheKey = getCacheKey(text, targetLang, sourceLang);
     if (translationCache[cacheKey]) {
       return translationCache[cacheKey];

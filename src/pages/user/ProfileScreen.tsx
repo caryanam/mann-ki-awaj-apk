@@ -3,6 +3,7 @@ import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Modal, Safe
 import { InitialAvatar } from '../../components/common/InitialAvatar';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
+import { CommentComposer } from '../../components/posts/CommentComposer';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -1940,6 +1941,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                     comment={c}
                     postId={activePostForModal.id}
                     currentUser={currentUser}
+                    postAuthorUsername={activePostForModal.username}
                     onNavigateToChat={(username, authorId, initials, color) => {
                       setCommentModalVisible(false);
                       if (onNavigateToChat) {
@@ -1951,27 +1953,16 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
               />
 
               {/* Add comment drawer bar */}
-              <View style={styles.commentComposerBar}>
-                <TextInput
-                  placeholder="Share a thoughtful reply..."
-                  placeholderTextColor={COLORS.zorba}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  style={styles.commentComposerInput}
-                />
-                <TouchableOpacity
-                  onPress={async () => {
-                    if (!commentText.trim()) return;
-                    await addComment(activePostForModal.id, commentText.trim(), currentUser);
-                    setCommentText('');
-                    const comments = await loadComments(activePostForModal.id);
-                    setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
-                  }}
-                  style={styles.commentSendButton}
-                >
-                  <Text style={styles.commentSendText}>Send</Text>
-                </TouchableOpacity>
-              </View>
+              <CommentComposer
+                postId={activePostForModal.id}
+                onSubmit={async (text) => {
+                  await addComment(activePostForModal.id, text, currentUser);
+                  const comments = await loadComments(activePostForModal.id);
+                  setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
+                }}
+                placeholder="Share a thoughtful reply..."
+                currentUser={currentUser}
+              />
             </View>
           </SafeAreaView>
         </Modal>

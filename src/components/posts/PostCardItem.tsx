@@ -6,7 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
 import { apiService } from '../../services/apiService';
-import { normalizeLanguageCode } from '../../services/apiTranslationService';
+import { normalizeLanguageCode, detectTextLanguage } from '../../services/apiTranslationService';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
@@ -148,7 +148,7 @@ const BookmarkIcon = ({ active = false, color = '#8C8385', size = 15 }) => {
   );
 };
 
-const CommentIcon = ({ color = '#8C8385', size = 13 }) => (
+export const CommentIcon = ({ color = '#8C8385', size = 13 }) => (
   <View style={{ width: size + 2, height: size + 1, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
     {/* Bubble body */}
     <View style={{
@@ -177,7 +177,7 @@ const CommentIcon = ({ color = '#8C8385', size = 13 }) => (
   </View>
 );
 
-const DMIcon = ({ color = '#6F405F', size = 13 }) => (
+export const DMIcon = ({ color = '#6F405F', size = 13 }) => (
   <View style={{ width: size + 2, height: size, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
     {/* Envelope container */}
     <View style={{
@@ -206,7 +206,7 @@ const DMIcon = ({ color = '#6F405F', size = 13 }) => (
   </View>
 );
 
-const FlagIcon = ({ color = '#C46F76', size = 13 }) => (
+export const FlagIcon = ({ color = '#C46F76', size = 13 }) => (
   <View style={{ width: size, height: size + 2, flexDirection: 'row', alignItems: 'flex-start' }}>
     {/* Pole */}
     <View style={{ width: 1.5, height: size + 1.5, backgroundColor: color }} />
@@ -221,7 +221,7 @@ const FlagIcon = ({ color = '#C46F76', size = 13 }) => (
   </View>
 );
 
-export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat, setActiveReportPost, setReportModalVisible, onOpenComments, showInlineComment = true, flat = false }: {
+export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToChat: _onNavigateToChat, setActiveReportPost, setReportModalVisible, onOpenComments, showInlineComment = true, flat = false }: {
   item: any;
   currentUser: any;
   handlePostReact: any;
@@ -243,7 +243,8 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
   const displayTitle = translateText(item.originalTitle || item.title, currentLanguage);
   const displayContent = translateText(item.originalContent || item.content, currentLanguage);
 
-  const postLangCode = normalizeLanguageCode(item.language) || 'EN';
+  const detectedCode = detectTextLanguage(item.originalContent || item.content);
+  const postLangCode = (detectedCode !== 'EN') ? detectedCode : (normalizeLanguageCode(item.language) || 'EN');
   const isDifferentLanguage = postLangCode !== currentLanguage;
   const hasTranslation = isDifferentLanguage && (
     (displayTitle && displayTitle !== (item.originalTitle || item.title)) ||
@@ -312,7 +313,7 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
                 setIsRecording(false);
                 if (resultUri) {
                   Alert.alert('Processing', 'Transcribing your voice...');
-                  const transcribed = await apiService.voiceToText(resultUri, 'EN');
+                  const transcribed = await apiService.voiceToText(resultUri, currentLanguage || 'EN');
                   if (transcribed) {
                     setCommentText(prev => prev ? `${prev} ${transcribed}` : transcribed);
                     Alert.alert('Speech-to-Text Success', `Transcribed: "${transcribed}"`);
@@ -377,15 +378,13 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
             </Text>
             
             <View style={{
-              backgroundColor: topicThemeColor + '12',
-              borderColor: topicThemeColor + '40',
-              borderWidth: 1,
-              borderRadius: 6,
-              paddingHorizontal: 6,
-              paddingVertical: 1.5,
+              backgroundColor: topicThemeColor,
+              borderRadius: 12,
+              paddingHorizontal: 10,
+              paddingVertical: 3,
             }}>
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: topicThemeColor, textTransform: 'uppercase' }}>
-                {item.topic}
+              <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase' }}>
+                🏷️ {item.topic}
               </Text>
             </View>
 
@@ -403,15 +402,7 @@ export function PostCardItem({ item, currentUser, handlePostReact, onNavigateToC
 
         {/* Right content containing Actions */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 2 }}>
-          {/* DM Button */}
-          {item.username !== currentUser?.username && (
-            <TouchableOpacity
-              onPress={() => onNavigateToChat(item.username, item.authorId || item.userId || item.user?.id, item.avatarInitials, item.avatarColor)}
-              style={{ padding: 4 }}
-            >
-              <Text style={{ fontSize: 14 }}>✉️</Text>
-            </TouchableOpacity>
-          )}
+
           {/* Flag Button */}
           {item.username !== currentUser?.username && (
             <TouchableOpacity

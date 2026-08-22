@@ -1,4 +1,5 @@
 import { apiService } from './apiService';
+import { localStorage } from './localStorage';
 
 // Mapping UI language names, 2-letter ISO codes, and FLORES-200 codes to standard ISO codes
 export const LANGUAGE_MAP = {
@@ -79,8 +80,8 @@ export const normalizeLanguageCode = (lang) => {
 export const detectTextLanguage = (text) => {
   if (!text || typeof text !== 'string') return 'EN';
 
-  // Devanagari script (Marathi / Hindi)
-  if (/[\u0900-\u097F]/.test(text)) return 'MR';
+  // Devanagari script (Hindi / Marathi)
+  if (/[\u0900-\u097F]/.test(text)) return 'HI';
   // Bengali / Assamese script
   if (/[\u0980-\u09FF]/.test(text)) return 'BN';
   // Gurmukhi script (Punjabi)
@@ -105,82 +106,162 @@ export const detectTextLanguage = (text) => {
 
 // In-memory cache for client-side translation results
 const translationCache = new Map();
+let rateLimitPauseUntil = 0;
+
+const getCachedTranslation = (cacheKey) => {
+  if (translationCache.has(cacheKey)) {
+    return translationCache.get(cacheKey);
+  }
+  try {
+    const lsKey = `mka_tr_${cacheKey.substring(0, 100)}`;
+    const saved = localStorage.getItem(lsKey);
+    if (saved) {
+      translationCache.set(cacheKey, saved);
+      return saved;
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setCachedTranslation = (cacheKey, value) => {
+  if (!cacheKey || !value) return;
+  translationCache.set(cacheKey, value);
+  try {
+    const lsKey = `mka_tr_${cacheKey.substring(0, 100)}`;
+    localStorage.setItem(lsKey, value);
+  } catch (e) {}
+};
 
 export const apiTranslationService = {
   /**
-   * Translates content dynamically via Spring Boot Backend (OpenAI Engine).
+   * Translates content dynamically via Spring Boot Backend or Google GTX Fallback.
    */
-  async translateText(text, targetLang, sourceLang = null) {
-    if (!text || !text.trim()) {
-      return text;
+  async translateText(rawInputText, targetLang, sourceLang = null) {
+    if (!rawInputText || !rawInputText.trim()) {
+      return rawInputText;
     }
+
+    let text = rawInputText.trim();
+    if (text.includes('%')) {
+      try {
+        text = decodeURIComponent(text);
+      } catch (e) {}
+    }
+    text = text
+      .replace(/%2सी/gi, ',')
+      .replace(/%3एफ/gi, '?')
+      .replace(/%2स/gi, ',')
+      .replace(/%3ए/gi, '?')
+      .replace(/%2C/gi, ',')
+      .replace(/%3F/gi, '?')
+      .replace(/%21/gi, '!')
+      .replace(/%20/g, ' ')
+      .replace(/%3([Ff]|एफ)?/gi, '?')
+      .replace(/%2([Cc]|सी)?/gi, ',');
 
     const tgtCode = normalizeLanguageCode(targetLang) || 'EN';
-    const srcCode = normalizeLanguageCode(sourceLang) || detectTextLanguage(text);
+    let srcCode = normalizeLanguageCode(sourceLang);
+    const detectedScriptCode = detectTextLanguage(text);
 
-    // If source and target language are identical, return original text immediately
-    if (srcCode === tgtCode) {
+    // If sourceLang was defaulted to EN, but text contains non-English script, trust script detection
+    if (srcCode === 'EN' && detectedScriptCode !== 'EN') {
+      srcCode = detectedScriptCode;
+    } else if (!srcCode && sourceLang !== 'auto') {
+      srcCode = detectedScriptCode;
+    }
+
+    // Only skip if source and target language are confirmed identical
+    if (srcCode && tgtCode && srcCode === tgtCode) {
       return text;
     }
 
-    const cacheKey = `${srcCode}_${tgtCode}_${text.trim()}`;
-    if (translationCache.has(cacheKey)) {
-      return translationCache.get(cacheKey);
+    // 1. Separate leading @username handles from main text body
+    let remainingText = text.trim();
+    const leadingHandles = [];
+    while (true) {
+      const match = remainingText.match(/^(@[a-zA-Z0-9_-]+)\s*/);
+      if (match) {
+        const handle = match[1];
+        if (!leadingHandles.includes(handle)) {
+          leadingHandles.push(handle);
+        }
+        remainingText = remainingText.substring(match[0].length);
+      } else {
+        break;
+      }
     }
 
-    const srcSent = sourceLang === 'auto' ? 'auto' : (LANGUAGE_MAP[sourceLang] || sourceLang);
+    // If text consists ONLY of @username handles, return handles directly
+    if (!remainingText.trim()) {
+      return text;
+    }
 
-    // PRESERVATION PRE-PROCESSING
-    const placeholders = [];
-    let placeholderCount = 0;
+    const bodyToTranslate = remainingText.trim();
 
-    // 1. URLs
-    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
-    let processedText = text.replace(urlRegex, (match) => {
-      const placeholder = `__PRESERVED_URL_${placeholderCount++}__`;
-      placeholders.push({ placeholder, original: match });
-      return placeholder;
+    // 2. Mask any inline handles (@username) using safe handle tokens like @MKAHDL0
+    const inlineHandles = [];
+    const maskedBody = bodyToTranslate.replace(/@([a-zA-Z0-9_-]+)/g, (match) => {
+      const token = `@MKAHDL${inlineHandles.length}`;
+      inlineHandles.push({ token, original: match });
+      return token;
     });
 
-    // 2. Usernames
-    const usernameRegex = /@[\w-]+/g;
-    processedText = processedText.replace(usernameRegex, (match) => {
-      const placeholder = `__PRESERVED_USER_${placeholderCount++}__`;
-      placeholders.push({ placeholder, original: match });
-      return placeholder;
-    });
-
-    // 3. Numbers
-    const numRegex = /\b\d+\b/g;
-    processedText = processedText.replace(numRegex, (match) => {
-      const placeholder = `__PRESERVED_NUM_${placeholderCount++}__`;
-      placeholders.push({ placeholder, original: match });
-      return placeholder;
-    });
-
-    console.log('[MKA MOBILE TRANSLATION DEBUG]', {
-      'Input text': text.trim(),
-      'Processed text': processedText,
-      'Target language': tgtCode,
-      'Source language sent': srcSent,
-    });
-
-    try {
-      const translated = await apiService.translateText(processedText, tgtCode, srcSent || 'auto');
-      if (translated) {
-        // PRESERVATION POST-PROCESSING (RESTORE)
-        let restored = translated;
-        for (const item of placeholders) {
-          const escapedPlaceholder = item.placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const spacingRegex = new RegExp(escapedPlaceholder.split('_').join('\\s*_\\s*'), 'gi');
-          restored = restored.replace(spacingRegex, item.original);
-        }
-        
-        translationCache.set(cacheKey, restored);
-        return restored;
+    const reattachHandles = (translatedBody) => {
+      if (!translatedBody) return text;
+      let clean = translatedBody.trim();
+      for (const h of inlineHandles) {
+        const regex = new RegExp(h.token.replace('@', '@\\s*'), 'gi');
+        clean = clean.replace(regex, h.original);
       }
-    } catch (err) {
-      console.warn('Mobile translation service error:', err?.message || err);
+      if (leadingHandles.length > 0) {
+        return `${leadingHandles.join(' ')} ${clean}`;
+      }
+      return clean;
+    };
+
+    const cacheKey = `${srcCode || 'auto'}_${tgtCode}_${text.trim()}`;
+    const cached = getCachedTranslation(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 1. Attempt primary backend translation endpoint with rate-limit pause check
+    if (Date.now() >= rateLimitPauseUntil) {
+      try {
+        const translated = await apiService.translateText(maskedBody, tgtCode, srcCode || 'auto');
+        if (translated && translated.trim() && translated !== maskedBody) {
+          const result = reattachHandles(translated);
+          setCachedTranslation(cacheKey, result);
+          return result;
+        }
+      } catch (err) {
+        console.warn('Mobile backend translation error, rate limiting primary client:', err?.message || err);
+        // Pause primary translation API calls for 20s
+        rateLimitPauseUntil = Date.now() + 20000;
+      }
+    }
+
+    // 2. Secondary Fallback: Free Google Translate GTX service
+    try {
+      const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${tgtCode.toLowerCase()}&dt=t&q=${encodeURIComponent(maskedBody)}`;
+      const gtxResponse = await fetch(gtxUrl).catch(() => null);
+      if (gtxResponse && gtxResponse.ok) {
+        const gtxData = await gtxResponse.json().catch(() => null);
+        if (Array.isArray(gtxData) && Array.isArray(gtxData[0])) {
+          const translatedParts = gtxData[0]
+            .filter((item) => Array.isArray(item) && item[0])
+            .map((item) => item[0])
+            .join('');
+
+          if (translatedParts && translatedParts.trim()) {
+            const finalResult = reattachHandles(translatedParts.trim());
+            setCachedTranslation(cacheKey, finalResult);
+            return finalResult;
+          }
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn('Mobile translation fallback failed:', fallbackErr?.message || fallbackErr);
     }
 
     return text;

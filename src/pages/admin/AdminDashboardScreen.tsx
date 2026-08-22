@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { usePosts } from '../../context/PostContext';
 import { apiService } from '../../services/apiService';
-import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { DocIcon, FlagIcon, ProfileIcon, EyeIcon, BarChartIcon, ShieldIcon, BellIcon } from '../../components/common/Icons';
+import { DocIcon, FlagIcon, ProfileIcon, EyeIcon, BarChartIcon, ShieldIcon, BellIcon, LogoutIcon } from '../../components/common/Icons';
 
 export function AdminDashboardScreen({
   activeAdminTab,
   setActiveAdminTab,
   adminBadgeCount = 0,
-  setAdminAlertsModalVisible = () => {},
+  setAdminAlertsModalVisible = () => { },
   currentUser,
+  onExitAdmin,
 }: {
   activeAdminTab: string;
   setActiveAdminTab: (tab: string) => void;
   adminBadgeCount?: number;
   setAdminAlertsModalVisible?: (visible: boolean) => void;
   currentUser?: any;
+  onExitAdmin?: () => void;
 }) {
   const { allRawPosts, reports } = usePosts() as any;
 
@@ -26,30 +27,38 @@ export function AdminDashboardScreen({
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [recentBlocked, setRecentBlocked] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadAdminData = async () => {
+    try {
+      const u = await apiService.adminFetchUsers();
+      setUsers(u);
+      const dbStats = await apiService.adminFetchDashboard();
+      if (dbStats) {
+        setDashboardStats(dbStats);
+      }
+      const rep = await apiService.adminFetchReports(0, 5);
+      if (rep) {
+        setRecentReports(Array.isArray(rep) ? rep : (rep.content || []));
+      }
+      const blk = await apiService.adminFetchBlockedContent('ALL', 0, 5);
+      if (blk) {
+        setRecentBlocked(Array.isArray(blk) ? blk : (blk.content || []));
+      }
+    } catch (err) {
+      console.warn('Failed to load admin data:', err);
+    }
+  };
 
   useEffect(() => {
-    async function loadAdminData() {
-      try {
-        const u = await apiService.adminFetchUsers();
-        setUsers(u);
-        const dbStats = await apiService.adminFetchDashboard();
-        if (dbStats) {
-          setDashboardStats(dbStats);
-        }
-        const rep = await apiService.adminFetchReports(0, 5);
-        if (rep) {
-          setRecentReports(Array.isArray(rep) ? rep : (rep.content || []));
-        }
-        const blk = await apiService.adminFetchBlockedContent('ALL', 0, 5);
-        if (blk) {
-          setRecentBlocked(Array.isArray(blk) ? blk : (blk.content || []));
-        }
-      } catch (err) {
-        console.warn('Failed to load admin data:', err);
-      }
-    }
     loadAdminData();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadAdminData();
+    setRefreshing(false);
+  };
 
   const pendingReports = reports.filter((r: any) => r.status === 'PENDING');
   const totalPosts = allRawPosts.length;
@@ -74,173 +83,262 @@ export function AdminDashboardScreen({
     }
   };
 
-
-
   return (
     <View style={styles.feedContainer}>
-      {/* Sub Header Title Bar */}
-      <View style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F8F5F4' }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.zorba }}>Admin Console / {activeAdminTab}</Text>
+      {/* Clean Compact Header Overview Bar */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 12,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E1DCDB',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: '#2D1D15' }}>
+            Dashboard Overview
+          </Text>
+          <Text style={{ fontSize: 10.5, color: '#8C8385', fontWeight: '500', marginTop: 2 }}>
+            Real-time moderation & intelligence monitoring
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={handleRefresh}
+          disabled={refreshing}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: 8,
+            backgroundColor: '#FCFAF9',
+            borderWidth: 1,
+            borderColor: '#E1DCDB',
+          }}
+        >
+          {refreshing ? (
+            <ActivityIndicator size="small" color="#2D1D15" style={{ marginRight: 4 }} />
+          ) : (
+            <Text style={{ fontSize: 11, color: '#2D1D15', marginRight: 4 }}>↻</Text>
+          )}
+          <Text style={{ fontSize: 11, fontWeight: '700', color: '#2D1D15' }}>
+            Refresh
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* DASHBOARD PAGE */}
       {activeAdminTab === 'Dashboard' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-          {/* Welcome Admin Premium Card */}
-          <View style={{
-            padding: 20,
-            backgroundColor: '#6F405F',
-            borderRadius: 24,
-            marginBottom: 20,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            elevation: 4,
-            shadowColor: '#6F405F',
-            shadowOpacity: 0.15,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 3 },
-          }}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={{ fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 }}>
-                Welcome, Admin! 👋
-              </Text>
-              <Text style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.8)', marginTop: 4, fontWeight: '600', lineHeight: 17 }}>
-                AwaajManki moderation console. Inspect pending activities, reviews, or view user directories below.
-              </Text>
+          {/* KPI CARDS 2x2 */}
+          <View style={{ gap: 10 }}>
+            {/* Row 1 */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {/* Card 1: PENDING USER REPORTS */}
+              <View style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#F8F5F4',
+                elevation: 1,
+                shadowColor: '#000000',
+                shadowOpacity: 0.04,
+                shadowRadius: 3,
+                shadowOffset: { width: 0, height: 1.5 }
+              }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <FlagIcon color="#EF4444" size={16} />
+                </View>
+                <Text style={{ fontSize: 9, fontWeight: '800', color: '#8C8385', letterSpacing: 0.5 }}>
+                  PENDING USER REPORTS
+                </Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: '#2D1D15', marginTop: 4 }}>
+                  {pendingReportsCount}
+                </Text>
+                <Text style={{ fontSize: 10, color: '#EF4444', marginTop: 4, fontWeight: '700' }}>
+                  Action required
+                </Text>
+              </View>
+
+              {/* Card 2: AI BLOCKED CONTENT */}
+              <View style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#F8F5F4',
+                elevation: 1,
+                shadowColor: '#000000',
+                shadowOpacity: 0.04,
+                shadowRadius: 3,
+                shadowOffset: { width: 0, height: 1.5 }
+              }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <ShieldIcon color="#10B981" size={16} />
+                </View>
+                <Text style={{ fontSize: 9, fontWeight: '800', color: '#8C8385', letterSpacing: 0.5 }}>
+                  AI BLOCKED CONTENT
+                </Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: '#2D1D15', marginTop: 4 }}>
+                  {blockedCountVal}
+                </Text>
+                <Text style={{ fontSize: 10, color: '#9F9794', marginTop: 4, fontWeight: '700' }}>
+                  Auto-blocked items
+                </Text>
+              </View>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              {/* Notification Bell */}
-              <TouchableOpacity
-                onPress={() => setAdminAlertsModalVisible(true)}
-                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-              >
-                <BellIcon color="#FFFFFF" size={18} />
-                {adminBadgeCount > 0 && (
-                  <View style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    backgroundColor: '#EF4444',
-                    borderRadius: 8,
-                    minWidth: 16,
-                    height: 16,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingHorizontal: 3,
-                  }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>
-                      {adminBadgeCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {/* Avatar circle */}
+            {/* Row 2 */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {/* Card 3: TOTAL PLATFORM POSTS */}
               <View style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                justifyContent: 'center',
-                alignItems: 'center',
+                flex: 1,
+                padding: 14,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
                 borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.4)',
+                borderColor: '#F8F5F4',
+                elevation: 1,
+                shadowColor: '#000000',
+                shadowOpacity: 0.04,
+                shadowRadius: 3,
+                shadowOffset: { width: 0, height: 1.5 }
               }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '900' }}>
-                  {String(currentUser?.username || 'A').replace('@', '').slice(0, 1).toUpperCase()}
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FAF5F8', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <DocIcon color="#6F405F" size={16} />
+                </View>
+                <Text style={{ fontSize: 9, fontWeight: '800', color: '#8C8385', letterSpacing: 0.5 }}>
+                  TOTAL PLATFORM POSTS
+                </Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: '#2D1D15', marginTop: 4 }}>
+                  {totalPostsVal}
+                </Text>
+                <Text style={{ fontSize: 10, color: '#9F9794', marginTop: 4, fontWeight: '700' }}>
+                  Active & archived
+                </Text>
+              </View>
+
+              {/* Card 4: REGISTERED ACCOUNTS */}
+              <View style={{
+                flex: 1,
+                padding: 14,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#F8F5F4',
+                elevation: 1,
+                shadowColor: '#000000',
+                shadowOpacity: 0.04,
+                shadowRadius: 3,
+                shadowOffset: { width: 0, height: 1.5 }
+              }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FAF7F6', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <ProfileIcon color="#5C5254" size={16} />
+                </View>
+                <Text style={{ fontSize: 9, fontWeight: '800', color: '#8C8385', letterSpacing: 0.5 }}>
+                  REGISTERED ACCOUNTS
+                </Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: '#2D1D15', marginTop: 4 }}>
+                  {totalUsersVal}
+                </Text>
+                <Text style={{ fontSize: 10, color: '#9F9794', marginTop: 4, fontWeight: '700' }}>
+                  Community members
                 </Text>
               </View>
             </View>
           </View>
 
-          <Text style={styles.adminSectionHeader}>Platform Health</Text>
-          <Text style={styles.adminSectionSub}>Activity analytics and safety statistics metrics.</Text>
-
-          {/* 1. FOUR LARGE KPI CARDS ACROSS THE TOP */}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <View style={{ flex: 1, padding: 14, backgroundColor: '#FFF', borderRadius: 14, borderWidth: 1, borderColor: '#F8F5F4', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
-              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <FlagIcon color="#ef4444" size={16} />
-              </View>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2D1D15' }}>{pendingReportsCount}</Text>
-              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#8C8385', marginTop: 2 }}>Pending Reports</Text>
-              <Text style={{ fontSize: 9, color: '#ef4444', marginTop: 1, fontWeight: '700' }}>Action required</Text>
-            </View>
-
-            <View style={{ flex: 1, padding: 14, backgroundColor: '#FFF', borderRadius: 14, borderWidth: 1, borderColor: '#F8F5F4', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
-              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <ShieldIcon color="#10b981" size={16} />
-              </View>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2D1D15' }}>{blockedCountVal}</Text>
-              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#8C8385', marginTop: 2 }}>AI Blocked Content</Text>
-              <Text style={{ fontSize: 9, color: '#10b981', marginTop: 1, fontWeight: '700' }}>Auto-blocked items</Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-            <View style={{ flex: 1, padding: 14, backgroundColor: '#FFF', borderRadius: 14, borderWidth: 1, borderColor: '#F8F5F4', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
-              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(111, 64, 95, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <DocIcon color="#6F405F" size={16} />
-              </View>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2D1D15' }}>{totalPostsVal}</Text>
-              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#8C8385', marginTop: 2 }}>Platform Posts</Text>
-              <Text style={{ fontSize: 9, color: '#6F405F', marginTop: 1, fontWeight: '700' }}>Active & archived</Text>
-            </View>
-
-            <View style={{ flex: 1, padding: 14, backgroundColor: '#FFF', borderRadius: 14, borderWidth: 1, borderColor: '#F8F5F4', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 2 } }}>
-              <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(45, 29, 21, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <ProfileIcon color="#2D1D15" size={16} />
-              </View>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#2D1D15' }}>{totalUsersVal}</Text>
-              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#8C8385', marginTop: 2 }}>Registered Users</Text>
-              <Text style={{ fontSize: 9, color: '#8C8385', marginTop: 1, fontWeight: '700' }}>Community members</Text>
-            </View>
-          </View>
-
           {/* 2. CONTENT INTELLIGENCE TREND BAR CHART */}
-          <View style={{ padding: 16, backgroundColor: '#FFF', borderRadius: 16, borderWidth: 1, borderColor: '#F8F5F4', marginTop: 16 }}>
-            <View style={{ display: 'flex', flexDirection: 'column', marginBottom: 12 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#2D1D15' }}>Content Intelligence Trend</Text>
-              <Text style={{ fontSize: 11, color: '#9F9794', marginTop: 2 }}>Real-time pattern tracking of reports, AI blocks, and reviews</Text>
+          <View style={{
+            padding: 16,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: '#F8F5F4',
+            marginTop: 16,
+            elevation: 1,
+            shadowColor: '#000000',
+            shadowOpacity: 0.04,
+            shadowRadius: 3,
+            shadowOffset: { width: 0, height: 1.5 }
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={{ fontSize: 15, fontWeight: '900', color: '#2D1D15' }}>Content Intelligence Trend</Text>
+                <Text style={{ fontSize: 11, color: '#9F9794', marginTop: 2, fontWeight: '600' }}>
+                  Real-time pattern tracking of reports, AI blocks, and reviews
+                </Text>
+              </View>
+              {/* Fake dropdown pill */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingVertical: 5,
+                paddingHorizontal: 9,
+                borderRadius: 6,
+                backgroundColor: '#FAF7F6',
+                borderWidth: 1,
+                borderColor: '#E1DCDB',
+              }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#2D1D15' }}>This Week</Text>
+                <Text style={{ fontSize: 8, color: '#2D1D15', transform: [{ rotate: '90deg' }] }}>▶</Text>
+              </View>
             </View>
 
-            {/* Comparative Multi-Bar Chart */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 130, paddingTop: 10 }}>
-              {[
-                { day: 'Mon', reports: 30, blocked: 20, reviewed: 15 },
-                { day: 'Tue', reports: 45, blocked: 35, reviewed: 28 },
-                { day: 'Wed', reports: 60, blocked: 40, reviewed: 35 },
-                { day: 'Thu', reports: 35, blocked: 25, reviewed: 20 },
-                { day: 'Fri', reports: 80, blocked: 65, reviewed: 50 },
-                { day: 'Sat', reports: 90, blocked: 80, reviewed: 75 },
-                { day: 'Sun', reports: 110, blocked: 95, reviewed: 85 }
-              ].map((item) => (
-                <View key={item.day} style={{ alignItems: 'center' }}>
-                  <View style={{ flexDirection: 'row', gap: 2.5, alignItems: 'flex-end', height: 90 }}>
-                    <View style={{ width: 4, height: item.reports * 0.7, backgroundColor: '#6F405F', borderRadius: 2 }} />
-                    <View style={{ width: 4, height: item.blocked * 0.7, backgroundColor: '#f97316', borderRadius: 2 }} />
-                    <View style={{ width: 4, height: item.reviewed * 0.7, backgroundColor: '#10b981', borderRadius: 2 }} />
+            {/* Chart Area with Gridlines */}
+            <View style={{ position: 'relative', height: 130, justifyContent: 'flex-end', paddingTop: 10 }}>
+              {/* Background Gridlines */}
+              <View style={{ position: 'absolute', top: 10, left: 0, right: 0, bottom: 0, justifyContent: 'space-between' }}>
+                <View style={{ height: 1, backgroundColor: '#F8F5F4', width: '100%' }} />
+                <View style={{ height: 1, backgroundColor: '#F8F5F4', width: '100%' }} />
+                <View style={{ height: 1, backgroundColor: '#F8F5F4', width: '100%' }} />
+                <View style={{ height: 1, backgroundColor: '#F8F5F4', width: '100%' }} />
+              </View>
+
+              {/* Bar charts */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', flex: 1, zIndex: 2 }}>
+                {[
+                  { day: 'Mon', reports: 30, blocked: 20, reviewed: 15 },
+                  { day: 'Tue', reports: 45, blocked: 35, reviewed: 28 },
+                  { day: 'Wed', reports: 60, blocked: 40, reviewed: 35 },
+                  { day: 'Thu', reports: 35, blocked: 25, reviewed: 20 },
+                  { day: 'Fri', reports: 80, blocked: 65, reviewed: 50 },
+                  { day: 'Sat', reports: 90, blocked: 80, reviewed: 75 },
+                  { day: 'Sun', reports: 110, blocked: 95, reviewed: 85 }
+                ].map((item) => (
+                  <View key={item.day} style={{ alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', gap: 3, alignItems: 'flex-end', height: 90 }}>
+                      <View style={{ width: 5, height: item.reports * 0.75, backgroundColor: '#6F405F', borderRadius: 2.5 }} />
+                      <View style={{ width: 5, height: item.blocked * 0.75, backgroundColor: '#FAF5F8', borderWidth: 1, borderColor: '#6F405F', borderRadius: 2.5 }} />
+                      <View style={{ width: 5, height: item.reviewed * 0.75, backgroundColor: '#D96C3D', borderRadius: 2.5 }} />
+                    </View>
+                    <Text style={{ fontSize: 9.5, color: '#8C8385', marginTop: 8, fontWeight: '800' }}>{item.day}</Text>
                   </View>
-                  <Text style={{ fontSize: 10, color: '#8C8385', marginTop: 6, fontWeight: 'bold' }}>{item.day}</Text>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
 
             {/* Legend */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F8F5F4' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#6F405F' }} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#2D1D15' }}>Reports</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#2D1D15' }}>Reports</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#f97316' }} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#2D1D15' }}>AI Blocked</Text>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#FAF5F8', borderWidth: 1.5, borderColor: '#6F405F' }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#2D1D15' }}>AI Blocked</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' }} />
-                <Text style={{ fontSize: 11, fontWeight: '600', color: '#2D1D15' }}>Reviewed</Text>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#D96C3D' }} />
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#2D1D15' }}>Reviewed</Text>
               </View>
             </View>
           </View>
@@ -257,7 +355,7 @@ export function AdminDashboardScreen({
             <View style={{ gap: 8 }}>
               {(() => {
                 const actList = [];
-                
+
                 recentReports.forEach((r: any, idx: number) => {
                   actList.push({
                     id: `rep-${r.id || idx}`,
@@ -275,10 +373,10 @@ export function AdminDashboardScreen({
                   const typeLabel = cType === 'chat' || cType === 'message' || cType === 'msg'
                     ? 'Message'
                     : cType === 'comment'
-                    ? 'Comment'
-                    : cType === 'post'
-                    ? 'Post'
-                    : 'Content';
+                      ? 'Comment'
+                      : cType === 'post'
+                        ? 'Post'
+                        : 'Content';
                   actList.push({
                     id: `blk-${b.id || idx}`,
                     title: `${typeLabel} auto-blocked by AI (${cleanUser})`,
@@ -331,7 +429,7 @@ export function AdminDashboardScreen({
           {/* 4. QUICK ACTIONS TILES */}
           <View style={{ padding: 16, backgroundColor: '#FFF', borderRadius: 16, borderWidth: 1, borderColor: '#F8F5F4', marginTop: 16 }}>
             <Text style={{ fontSize: 15, fontWeight: '800', color: '#2D1D15', marginBottom: 12 }}>Quick Actions</Text>
-            
+
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               <TouchableOpacity
                 onPress={() => setActiveAdminTab('Reports')}

@@ -81,7 +81,7 @@ export function ChatScreen({ activeConversation, onConversationSelect, onBackToC
 
       if (resultUri) {
         Alert.alert('Processing', 'Transcribing your voice...');
-        const transcribed = await apiService.voiceToText(resultUri, 'EN');
+        const transcribed = await apiService.voiceToText(resultUri, currentLanguage || 'EN');
         if (transcribed) {
           setMsgText(prev => prev ? `${prev} ${transcribed}` : transcribed);
           Alert.alert('Speech-to-Text Success', `Transcribed: "${transcribed}"`);

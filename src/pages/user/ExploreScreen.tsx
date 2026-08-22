@@ -1,17 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList, Modal, SafeAreaView, TextInput, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Modal, SafeAreaView, TextInput, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
+import { CommentComposer } from '../../components/posts/CommentComposer';
 import { usePosts } from '../../context/PostContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles as appStyles } from '../../styles/appStyles';
-
+import { TOPIC_CATEGORIES } from '../../utils/topicUtils';
+const CATEGORY_EMOJIS: Record<string, string> = {
+  Heart: '❤️',
+  Feather: '✍️',
+  Briefcase: '💼',
+  Landmark: '⚖️',
+  Film: '🎬',
+  Trophy: '🏆',
+  Compass: '🧭',
+  UserCheck: '💡',
+};
 export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
-  const { posts, reactToPost, addComment, fileReport, loadComments } = usePosts() as any;
+  const { posts, reactToPost, addComment, fileReport, loadComments, refreshPosts } = usePosts() as any;
   const { currentUser } = useAuth() as any;
-  const { t, currentLanguage, translationCache } = useLanguage() as any;
+  const { t, currentLanguage, translationCache, translateText } = useLanguage() as any;
 
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState('All');
@@ -23,43 +34,78 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportReason, setReportReason] = useState('Spam');
   const [reportNotes, setReportNotes] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshPosts();
+    } catch (err) {
+      console.warn('[ExploreScreen] refresh error:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [activeReportPost, setActiveReportPost] = useState<any>(null);
 
-  const TOPIC_PRESETS = [
-    { name: 'BOLLYWOOD', category: 'Entertainment', categoryKey: 'ENTERTAINMENT_CAT', isTrending: true, isNew: false, defaultTime: '2mins ago' },
-    { name: 'CRICKET', category: 'Sports', categoryKey: 'SPORTS_CAT', isTrending: true, isNew: true, defaultTime: '5mins ago' },
-    { name: 'TECHNOLOGY', category: 'Innovation', categoryKey: 'INNOVATION_CAT', isTrending: false, isNew: true, defaultTime: '12mins ago' },
-    { name: 'POLITICS', category: 'News', categoryKey: 'NEWS_CAT', isTrending: true, isNew: false, defaultTime: '18mins ago' },
-    { name: 'ENTERTAINMENT', category: 'Media', categoryKey: 'MEDIA_CAT', isTrending: false, isNew: false, defaultTime: '25mins ago' },
-    { name: 'LIFESTYLE', category: 'Personal', categoryKey: 'PERSONAL_CAT', isTrending: false, isNew: true, defaultTime: '35mins ago' },
-    { name: 'SPORTS', category: 'Fitness', categoryKey: 'FITNESS_CAT', isTrending: false, isNew: false, defaultTime: '42mins ago' },
-    { name: 'NEWS', category: 'Current Affairs', categoryKey: 'CURRENT_AFFAIRS_CAT', isTrending: true, isNew: false, defaultTime: '1h ago' },
-    { name: 'GENERAL', category: 'Community', categoryKey: 'COMMUNITY_CAT', isTrending: false, isNew: false, defaultTime: '2h ago' },
-  ];
+  // Standardized Topic Presets derived from shared TOPIC_CATEGORIES
+  const TOPIC_PRESETS = useMemo(() => {
+    const presets: any[] = [];
+    TOPIC_CATEGORIES.forEach((cat: any) => {
+      cat.subtopics.forEach((sub: any) => {
+        presets.push({
+          name: sub.id,
+          label: sub.label,
+          category: cat.name,
+          categoryKey: cat.categoryKey,
+          icon: sub.icon,
+          accent: cat.accent,
+          gradient: cat.gradient,
+        });
+      });
+    });
+    return presets;
+  }, []);
 
   // Dynamic calculation of topic statistics from real posts
   const topicStats = useMemo(() => {
     const statsMap: { [key: string]: any } = {};
     TOPIC_PRESETS.forEach(tItem => {
-      statsMap[tItem.name] = { count: 0, lastPostTime: tItem.defaultTime, isNew: tItem.isNew, isTrending: tItem.isTrending };
+      statsMap[tItem.name] = { count: 0, lastPostTime: 'No posts yet', lastPostMs: 0, isNew: false, isTrending: false };
     });
 
     posts.forEach((p: any) => {
-      const topicName = (p.topic || 'GENERAL').toUpperCase();
+      if (!p) return;
+      const topicName = (p.topic || 'GENERAL').toUpperCase().trim();
       if (!statsMap[topicName]) {
-        statsMap[topicName] = { count: 0, lastPostTime: 'Just now', isNew: true, isTrending: false };
+        statsMap[topicName] = { count: 0, lastPostTime: 'No posts yet', lastPostMs: 0, isNew: false, isTrending: false };
       }
-      statsMap[topicName].count += 1;
-      if (p.createdAt) {
-        const timeDiff = Math.floor((Date.now() - new Date(p.createdAt).getTime()) / 60000);
-        statsMap[topicName].lastPostTime = timeDiff <= 0 ? 'Just now' : timeDiff < 60 ? `${timeDiff}m ago` : `${Math.floor(timeDiff/60)}h ago`;
+      const stat = statsMap[topicName];
+      stat.count += 1;
+
+      const createdAtMs = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+      if (createdAtMs > stat.lastPostMs) {
+        stat.lastPostMs = createdAtMs;
+        const diffMins = Math.floor((Date.now() - createdAtMs) / 60000);
+        stat.lastPostTime = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins}m ago` : diffMins < 1440 ? `${Math.floor(diffMins/60)}h ago` : `${Math.floor(diffMins/1440)}d ago`;
+      }
+    });
+
+    // Apply trending/new badges
+    Object.values(statsMap).forEach((stat: any) => {
+      if (stat.count > 0) {
+        stat.isNew = true;
+        stat.isTrending = stat.count >= 2;
+      } else {
+        stat.isNew = false;
+        stat.isTrending = false;
       }
     });
 
     return statsMap;
-  }, [posts]);
+  }, [posts, TOPIC_PRESETS]);
 
-  // Filter posts
+  // Filter posts based on activeTopic and query
   const displayPosts = useMemo(() => {
     let list = posts.filter((p: any) => {
       return p.status === 'ACTIVE' || p.status === 'PUBLISHED' || !p.hidden;
@@ -73,21 +119,11 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
     }
 
     if (activeTopic !== 'All') {
-      list = list.filter((p: any) => (p.topic || '').toUpperCase() === activeTopic.toUpperCase());
+      list = list.filter((p: any) => (p.topic || '').toUpperCase().replace(/[\s_-]/g, '') === activeTopic.toUpperCase().replace(/[\s_-]/g, ''));
     }
 
     return list;
   }, [posts, query, activeTopic]);
-
-  // Filter topic presets by search query
-  const filteredTopicPresets = useMemo(() => {
-    if (!query.trim()) return TOPIC_PRESETS;
-    const q = query.toLowerCase();
-    return TOPIC_PRESETS.filter(tItem => {
-      const translatedName = t(tItem.name, tItem.name).toLowerCase();
-      return tItem.name.toLowerCase().includes(q) || translatedName.includes(q) || tItem.category.toLowerCase().includes(q);
-    });
-  }, [query, t]);
 
   const handlePostReact = (postId: any, key: any) => {
     reactToPost(postId, key);
@@ -107,7 +143,8 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
       activeReportPost.content,
       activeReportPost.username,
       reportReason,
-      reportNotes.trim()
+      reportNotes.trim(),
+      currentUser?.username || '@anonymous'
     );
     setReportNotes('');
     setReportModalVisible(false);
@@ -117,9 +154,121 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
 
   const activePostForModal = posts.find((p: any) => p.id === selectedPost?.id) || selectedPost;
 
+  // Header content inside the FlatList to enable cohesive scrolling
+  const renderHeader = () => (
+    <View>
+      {/* Discovery Hero Banner Card */}
+      <View style={localStyles.heroCard}>
+        <View style={localStyles.heroBannerPill}>
+          <Text style={localStyles.heroBannerPillText}>मनातलं बोला… ओळख सुरक्षित ठेवा.</Text>
+        </View>
+        <Text style={localStyles.heroTitle}>
+          {t('exploreTopicsDiscussions', 'Explore Topics & Discussions')}
+        </Text>
+        <Text style={localStyles.heroSubtitle}>
+          {t('exploreSubtitle', 'Search topics, view last post timestamps, and join conversations across Bollywood, Cricket, Politics, and Tech.')}
+        </Text>
+      </View>
+
+      {/* Category Section Header */}
+      <View style={localStyles.featuredHeaderRow}>
+        <Text style={localStyles.sectionTitle}>🏷️ {t('exploreCategories', 'Explore Topic Channels')}</Text>
+        {activeTopic !== 'All' && (
+          <TouchableOpacity onPress={() => setActiveTopic('All')} style={localStyles.clearFilterBtn}>
+            <Text style={localStyles.clearFilterText}>
+              ✕ {t('clearFilter', 'Clear Filter')} ({activeTopic})
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Categorized grid list */}
+      <View style={localStyles.categoriesList}>
+        {TOPIC_CATEGORIES.map((cat: any) => {
+          const catMatchesQuery = !query.trim() || 
+            cat.name.toLowerCase().includes(query.toLowerCase()) ||
+            t(cat.categoryKey, cat.name).toLowerCase().includes(query.toLowerCase()) ||
+            cat.subtopics.some((s: any) => s.label.toLowerCase().includes(query.toLowerCase()) || s.id.toLowerCase().includes(query.toLowerCase()));
+
+          if (!catMatchesQuery) return null;
+
+          return (
+            <View key={cat.categoryKey} style={[localStyles.categoryCard, { borderColor: cat.accent + '30' }]}>
+              {/* Header */}
+              <View style={[localStyles.categoryHeader, { borderBottomWidth: 1, borderBottomColor: cat.accent + '15' }]}>
+                <View style={localStyles.categoryTitleRow}>
+                  <View style={[localStyles.categoryIconWrapper, { backgroundColor: cat.accent + '18' }]}>
+                    <Text style={{ fontSize: 15, color: cat.accent }}>{CATEGORY_EMOJIS[cat.iconName] || '💡'}</Text>
+                  </View>
+                  <Text style={localStyles.categoryName}>{translateText(cat.name, currentLanguage)}</Text>
+                </View>
+                <Text style={[localStyles.categorySubtopicCount, { color: cat.accent }]}>
+                  {cat.subtopics.length} {t('topics', 'topics')}
+                </Text>
+              </View>
+
+              {/* Subtopic chips */}
+              <View style={localStyles.subtopicsContainer}>
+                {cat.subtopics.map((sub: any) => {
+                  const isSelected = activeTopic.toUpperCase() === sub.id.toUpperCase();
+                  const isQueryMatch = query.trim() && (
+                    sub.label.toLowerCase().includes(query.toLowerCase()) || 
+                    sub.id.toLowerCase().includes(query.toLowerCase())
+                  );
+                  const stat = topicStats[sub.id] || { count: 0, isTrending: false };
+
+                  return (
+                    <TouchableOpacity
+                      key={sub.id}
+                      onPress={() => {
+                        setActiveTopic(isSelected ? 'All' : sub.id);
+                      }}
+                      style={[
+                        localStyles.subtopicChip,
+                        { borderColor: cat.accent + '30' },
+                        isSelected && { backgroundColor: cat.accent, borderColor: cat.accent },
+                        isQueryMatch && !isSelected && { backgroundColor: cat.accent + '18' }
+                      ]}
+                    >
+                      <Text style={localStyles.subtopicIcon}>{sub.icon}</Text>
+                      <Text style={[localStyles.subtopicLabel, isSelected && { color: '#FFF' }]}>
+                        {translateText(sub.label, currentLanguage)}
+                      </Text>
+                      <View style={[
+                        localStyles.subtopicCountBadge,
+                        { backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.25)' : cat.accent + '16' }
+                      ]}>
+                        <Text style={[
+                          localStyles.subtopicCountText,
+                          { color: isSelected ? '#FFFFFF' : cat.accent }
+                        ]}>
+                          {stat.count}
+                        </Text>
+                      </View>
+                      {stat.isTrending && (
+                        <Text style={{ fontSize: 9, marginLeft: 2 }}>🔥</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Recent Thoughts Section Title */}
+      <View style={localStyles.feedHeader}>
+        <Text style={localStyles.sectionTitle}>
+          🧭 {t('recentThoughts', 'Recent Thoughts')} {activeTopic !== 'All' ? `under #${t(activeTopic, activeTopic)}` : ''} ({displayPosts.length})
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={localStyles.container}>
-      {/* Search Input Bar */}
+      {/* Fixed Search Bar at top */}
       <View style={localStyles.searchBarContainer}>
         <TextInput
           placeholder={t('exploreSearchPlaceholder', '🧭 Search topics (e.g. Bollywood, Cricket)...')}
@@ -135,81 +284,22 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
         ) : null}
       </View>
 
-      {/* Featured Topics Section */}
-      <View style={localStyles.featuredHeaderRow}>
-        <Text style={localStyles.sectionTitle}>🏷️ {t('featuredTopics', 'Featured Topics')}</Text>
-        {activeTopic !== 'All' && (
-          <TouchableOpacity onPress={() => setActiveTopic('All')}>
-            <Text style={localStyles.clearFilterBtn}>
-              {t('clearFilter', 'Clear Filter')} ({activeTopic})
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Dynamic Topics Grid */}
-      <View style={{ height: 160, paddingHorizontal: 12 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
-        >
-          {filteredTopicPresets.map((tItem) => {
-            const stat = topicStats[tItem.name] || { count: 0, lastPostTime: tItem.defaultTime };
-            const isSelected = activeTopic.toUpperCase() === tItem.name.toUpperCase();
-
-            return (
-              <TouchableOpacity
-                key={tItem.name}
-                onPress={() => setActiveTopic(isSelected ? 'All' : tItem.name)}
-                style={[
-                  localStyles.topicCard,
-                  isSelected && { borderColor: COLORS.deepPlum, backgroundColor: 'rgba(111, 64, 95, 0.04)' }
-                ]}
-              >
-                <View style={localStyles.cardHeader}>
-                  <Text style={localStyles.categoryText}>{t(tItem.categoryKey, tItem.category)}</Text>
-                  <View style={{ flexDirection: 'row', gap: 4 }}>
-                    {tItem.isTrending && (
-                      <View style={localStyles.badgeTrending}>
-                        <Text style={localStyles.badgeText}>🔥</Text>
-                      </View>
-                    )}
-                    {tItem.isNew && (
-                      <View style={localStyles.badgeNew}>
-                        <Text style={localStyles.badgeText}>✨</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <Text style={localStyles.topicTitleText}>#{t(tItem.name, tItem.name)}</Text>
-
-                <View style={localStyles.cardFooter}>
-                  <Text style={localStyles.footerText}>⏱️ {stat.lastPostTime}</Text>
-                  <Text style={[localStyles.footerText, { fontWeight: 'bold', color: COLORS.deepPlum }]}>
-                    {stat.count} {t('posts', 'posts')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Thoughts Feed */}
-      <View style={localStyles.feedHeader}>
-        <Text style={localStyles.sectionTitle}>
-          🧭 {t('recentThoughts', 'Recent Thoughts')} {activeTopic !== 'All' ? `under #${activeTopic}` : ''} ({displayPosts.length})
-        </Text>
-      </View>
-
+      {/* Thoughts Feed & Catalog header scroll */}
       <FlatList
         data={displayPosts}
         keyExtractor={item => item.id}
         extraData={{ currentLanguage, translationCache }}
         style={{ flex: 1 }}
         contentContainerStyle={appStyles.feedScroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#6F405F']}
+            tintColor="#6F405F"
+          />
+        }
+        ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <View style={localStyles.emptyContainer}>
             <Text style={localStyles.emptyText}>No thoughts found matching this topic.</Text>
@@ -312,6 +402,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
                     comment={c}
                     postId={activePostForModal.id}
                     currentUser={currentUser}
+                    postAuthorUsername={activePostForModal.username}
                     onNavigateToChat={(username, authorId, initials, color) => {
                       setCommentModalVisible(false);
                       onNavigateToChat(username, authorId, initials, color);
@@ -321,18 +412,12 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
               />
 
               {/* Add comment drawer bar */}
-              <View style={appStyles.commentComposerBar}>
-                <TextInput
-                  placeholder="Share a thoughtful reply..."
-                  placeholderTextColor={COLORS.zorba}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  style={appStyles.commentComposerInput}
-                />
-                <TouchableOpacity onPress={handleAddComment} style={appStyles.commentSendButton}>
-                  <Text style={appStyles.commentSendText}>Send</Text>
-                </TouchableOpacity>
-              </View>
+              <CommentComposer
+                postId={activePostForModal.id}
+                onSubmit={(text) => addComment(activePostForModal.id, text, currentUser)}
+                placeholder="Share a thoughtful reply..."
+                currentUser={currentUser}
+              />
             </View>
           </SafeAreaView>
         </Modal>
@@ -374,8 +459,8 @@ const localStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingTop: 14,
+    paddingBottom: 6,
   },
   sectionTitle: {
     fontSize: 15,
@@ -383,63 +468,15 @@ const localStyles = StyleSheet.create({
     color: '#2D1D15',
   },
   clearFilterBtn: {
-    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(111,64,95,0.1)',
+  },
+  clearFilterText: {
+    fontSize: 11,
     color: COLORS.deepPlum,
     fontWeight: 'bold',
-  },
-  topicCard: {
-    width: 170,
-    height: 140,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E1DCDB',
-    padding: 12,
-    justifyContent: 'space-between',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#8C8385',
-    textTransform: 'uppercase',
-  },
-  badgeTrending: {
-    backgroundColor: 'rgba(217, 108, 61, 0.15)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  badgeNew: {
-    backgroundColor: 'rgba(63, 119, 114, 0.15)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  badgeText: {
-    fontSize: 9,
-  },
-  topicTitleText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#2D1D15',
-    marginTop: -8,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#F8F5F4',
-    paddingTop: 8,
-  },
-  footerText: {
-    fontSize: 10,
-    color: '#8C8385',
   },
   feedHeader: {
     paddingHorizontal: 16,
@@ -455,5 +492,121 @@ const localStyles = StyleSheet.create({
     fontSize: 13.5,
     color: COLORS.zorba,
     textAlign: 'center',
-  }
+  },
+  
+  // Explore Catalog Styles
+  heroCard: {
+    backgroundColor: '#6F405F',
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  heroBannerPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginBottom: 8,
+  },
+  heroBannerPillText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFD1E8',
+  },
+  heroTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    color: '#E0C8D6',
+    lineHeight: 16,
+  },
+  categoriesSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  categoriesList: {
+    paddingBottom: 8,
+  },
+  categoryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 16,
+    marginHorizontal: 12,
+    marginVertical: 6,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 10,
+    marginBottom: 12,
+  },
+  categoryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryIconWrapper: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryName: {
+    fontSize: 14.5,
+    fontWeight: 'bold',
+    color: '#2D1D15',
+  },
+  categorySubtopicCount: {
+    fontSize: 10.5,
+    fontWeight: 'bold',
+  },
+  subtopicsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  subtopicChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  subtopicLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2D1D15',
+  },
+  subtopicCountBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  subtopicCountText: {
+    fontSize: 9.5,
+    fontWeight: 'bold',
+  },
+  subtopicIcon: {
+    fontSize: 13,
+    marginRight: 4,
+  },
 });

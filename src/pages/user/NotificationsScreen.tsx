@@ -10,6 +10,7 @@ import { styles } from '../../styles/appStyles';
 
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
+import { CommentComposer } from '../../components/posts/CommentComposer';
 
 export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void }) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications() as any;
@@ -358,6 +359,7 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                       comment={c}
                       postId={selectedPost.id}
                       currentUser={currentUser}
+                      postAuthorUsername={selectedPost.username}
                       onNavigateToChat={(username, authorId, initials, color) => {
                         setCommentModalVisible(false);
                         if (onNavigateToChat) {
@@ -370,18 +372,16 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
               />
 
               {/* Add comment drawer bar */}
-              <View style={styles.commentComposerBar}>
-                <TextInput
-                  placeholder="Share a thoughtful reply..."
-                  placeholderTextColor={COLORS.zorba}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  style={styles.commentComposerInput}
-                />
-                <TouchableOpacity onPress={handleAddComment} style={styles.commentSendButton}>
-                  <Text style={styles.commentSendText}>Send</Text>
-                </TouchableOpacity>
-              </View>
+              <CommentComposer
+                postId={selectedPost.id}
+                onSubmit={async (text) => {
+                  await addComment(selectedPost.id, text, currentUser);
+                  const comments = await loadComments(selectedPost.id);
+                  setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
+                }}
+                placeholder="Share a thoughtful reply..."
+                currentUser={currentUser}
+              />
             </View>
           </SafeAreaView>
         </Modal>

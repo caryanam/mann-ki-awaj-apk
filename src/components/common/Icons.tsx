@@ -9,30 +9,49 @@ export const HamburgerIcon = ({ color = '#2D1D15' }) => (
   </View>
 );
 
-export const HomeIcon = ({ color = '#8C8385', size = 20 }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <View style={{
-      width: 0,
-      height: 0,
-      borderLeftWidth: size / 2,
-      borderRightWidth: size / 2,
-      borderBottomWidth: size / 2 - 1,
-      borderStyle: 'solid',
-      backgroundColor: 'transparent',
-      borderLeftColor: 'transparent',
-      borderRightColor: 'transparent',
-      borderBottomColor: color,
-    }} />
-    <View style={{
-      width: size - 4,
-      height: size / 2,
-      backgroundColor: color,
-      marginTop: -1,
-      borderBottomLeftRadius: 2,
-      borderBottomRightRadius: 2,
-    }} />
-  </View>
-);
+export const HomeIcon = ({ color = '#8C8385', size = 20 }) => {
+  const wallSize = size * 0.7;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Roof sides */}
+      <View style={{
+        position: 'absolute',
+        top: 2,
+        width: size * 0.65,
+        height: size * 0.65,
+        borderTopWidth: 2,
+        borderLeftWidth: 2,
+        borderColor: color,
+        transform: [{ rotate: '45deg' }],
+      }} />
+      {/* Base walls */}
+      <View style={{
+        position: 'absolute',
+        bottom: 1,
+        width: wallSize,
+        height: wallSize,
+        borderWidth: 2,
+        borderTopWidth: 0,
+        borderColor: color,
+        borderBottomLeftRadius: 2,
+        borderBottomRightRadius: 2,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+      }}>
+        {/* Door */}
+        <View style={{
+          width: wallSize * 0.35,
+          height: wallSize * 0.5,
+          borderWidth: 1.8,
+          borderBottomWidth: 0,
+          borderColor: color,
+          borderTopLeftRadius: 1.5,
+          borderTopRightRadius: 1.5,
+        }} />
+      </View>
+    </View>
+  );
+};
 
 export const PlusIcon = ({ color = '#FFFFFF', size = 18 }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -63,13 +82,45 @@ export const ChatIcon = ({ color = '#8C8385', size = 18 }) => (
   </View>
 );
 
-export const BellIcon = ({ color = '#8C8385', size = 18 }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <View style={{ width: size - 4, height: size - 6, backgroundColor: color, borderTopLeftRadius: size / 2, borderTopRightRadius: size / 2 }} />
-    <View style={{ width: size, height: 2, backgroundColor: color, borderRadius: 1, marginTop: 1 }} />
-    <View style={{ width: 4, height: 2, backgroundColor: color, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, marginTop: 1 }} />
-  </View>
-);
+export const BellIcon = ({ color = '#8C8385', size = 20 }) => {
+  const bellWidth = size * 0.75;
+  const bellHeight = size * 0.65;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Bell body outline */}
+      <View style={{
+        width: bellWidth,
+        height: bellHeight,
+        borderWidth: 2,
+        borderColor: color,
+        borderBottomWidth: 0,
+        borderTopLeftRadius: bellWidth / 2,
+        borderTopRightRadius: bellWidth / 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }} />
+      {/* Bell bottom horizontal bar */}
+      <View style={{
+        width: bellWidth + 4,
+        height: 2,
+        backgroundColor: color,
+        borderRadius: 1,
+        marginTop: -0.5,
+      }} />
+      {/* Clapper */}
+      <View style={{
+        width: size * 0.22,
+        height: size * 0.15,
+        borderWidth: 2,
+        borderColor: color,
+        borderTopWidth: 0,
+        borderBottomLeftRadius: size * 0.1,
+        borderBottomRightRadius: size * 0.1,
+        marginTop: 1,
+      }} />
+    </View>
+  );
+};
 
 export const ProfileIcon = ({ color = '#8C8385', size = 18 }) => (
   <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
@@ -78,26 +129,47 @@ export const ProfileIcon = ({ color = '#8C8385', size = 18 }) => (
   </View>
 );
 
-export const StarIcon = ({ color = '#8C8385', size = 18 }) => (
-  <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-    <View style={{ width: size - 6, height: size - 2, backgroundColor: color, borderRadius: 2 }}>
+export const StarIcon = ({ color = '#8C8385', size = 20 }) => {
+  const width = size * 0.72;
+  const height = size * 0.95;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
       <View style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 0,
-        borderLeftWidth: (size - 6) / 2,
-        borderRightWidth: (size - 6) / 2,
-        borderBottomWidth: 3,
-        borderStyle: 'solid',
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderBottomColor: '#FCFAF9',
-      }} />
+        width: width,
+        height: height,
+        borderWidth: 2,
+        borderColor: color,
+        borderBottomWidth: 0,
+        borderTopLeftRadius: 3,
+        borderTopRightRadius: 3,
+        overflow: 'hidden',
+      }}>
+        {/* Left inner cutout line */}
+        <View style={{
+          position: 'absolute',
+          bottom: -width * 0.35,
+          left: -2,
+          width: width * 0.6,
+          height: width * 0.6,
+          borderWidth: 2,
+          borderColor: color,
+          transform: [{ rotate: '45deg' }],
+        }} />
+        {/* Right inner cutout line */}
+        <View style={{
+          position: 'absolute',
+          bottom: -width * 0.35,
+          right: -2,
+          width: width * 0.6,
+          height: width * 0.6,
+          borderWidth: 2,
+          borderColor: color,
+          transform: [{ rotate: '-45deg' }],
+        }} />
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 export const DocIcon = ({ color = '#8C8385', size = 18 }) => (
   <View style={{ width: size - 4, height: size, backgroundColor: color, borderRadius: 2, padding: 2, justifyContent: 'center', alignItems: 'center' }}>
@@ -290,3 +362,82 @@ export const LogsIcon = ({ color = '#8C8385', size = 18 }) => (
     </View>
   </View>
 );
+
+export const ExploreIcon = ({ color = '#8C8385', size = 20 }) => {
+  const compassSize = size * 0.95;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Outer Dial Outline */}
+      <View style={{
+        width: compassSize,
+        height: compassSize,
+        borderRadius: compassSize / 2,
+        borderWidth: 2,
+        borderColor: color,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        {/* Needle Container (rotated diagonally) */}
+        <View style={{
+          width: compassSize * 0.65,
+          height: compassSize * 0.65,
+          justifyContent: 'center',
+          alignItems: 'center',
+          transform: [{ rotate: '45deg' }],
+        }}>
+          {/* North needle */}
+          <View style={{
+            width: 0,
+            height: 0,
+            borderLeftWidth: 3.5,
+            borderRightWidth: 3.5,
+            borderBottomWidth: compassSize * 0.3,
+            borderStyle: 'solid',
+            borderLeftColor: 'transparent',
+            borderRightColor: 'transparent',
+            borderBottomColor: '#EF4444',
+            marginBottom: 1,
+          }} />
+          {/* South needle */}
+          <View style={{
+            width: 0,
+            height: 0,
+            borderLeftWidth: 3.5,
+            borderRightWidth: 3.5,
+            borderTopWidth: compassSize * 0.3,
+            borderStyle: 'solid',
+            borderLeftColor: 'transparent',
+          }} />
+        </View>
+      </View>
+    </View>
+  );
+};
+
+export const TagIcon = ({ color = '#8C8385', size = 18 }) => {
+  const width = size * 0.9;
+  const height = size * 0.55;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{
+        width: width,
+        height: height,
+        borderWidth: 2,
+        borderColor: color,
+        borderRadius: 3,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        transform: [{ rotate: '-45deg' }],
+        paddingLeft: 3,
+      }}>
+        {/* Tag hole */}
+        <View style={{
+          width: 3.5,
+          height: 3.5,
+          borderRadius: 1.75,
+          backgroundColor: color,
+        }} />
+      </View>
+    </View>
+  );
+};

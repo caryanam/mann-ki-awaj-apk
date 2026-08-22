@@ -441,7 +441,7 @@ export function PostProvider({ children }) {
     );
   };
 
-  const fileReport = (postId, contentType, content, authorUsername, reason, notes) => {
+  const fileReport = (postId, contentType, content, authorUsername, reason, notes, reporterUsername) => {
     const newReport = {
       id: `report_${Date.now()}`,
       postId: postId,
@@ -452,6 +452,7 @@ export function PostProvider({ children }) {
       reporterNotes: notes || '',
       createdAt: new Date().toISOString(),
       status: 'PENDING',
+      reporterUsername: reporterUsername || '@anonymous',
     };
     setReports(prev => [newReport, ...prev]);
   };
@@ -474,6 +475,19 @@ export function PostProvider({ children }) {
         };
       })
     );
+  };
+
+  const refreshReports = async () => {
+    try {
+      if (currentUser && (currentUser.role === 'ROLE_ADMIN' || currentUser.role === 'ADMIN')) {
+        const backendReports = await apiService.getReports();
+        if (backendReports && backendReports.length > 0) {
+          setReports(backendReports);
+        }
+      }
+    } catch (err) {
+      console.warn('[PostContext] Failed to refresh reports:', err.message);
+    }
   };
 
   return (
@@ -500,6 +514,7 @@ export function PostProvider({ children }) {
         translateComment,
         fileReport,
         resolveReport,
+        refreshReports,
         refreshPosts,
       }}
     >
