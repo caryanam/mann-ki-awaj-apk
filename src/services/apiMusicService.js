@@ -48,8 +48,12 @@ export const cleanMusicParams = (params = {}) => {
 
 const mapMusicTrack = (track) => track ? ({
   ...track,
-  audioUrl: getMediaUrl(track.audioUrl),
+  audioUrl: track.audioUrl ? getMediaUrl(track.audioUrl) : null,
   coverUrl: track.coverUrl ? getMediaUrl(track.coverUrl) : null,
+  privateAudioUrl: track.privateAudioUrl ? getMediaUrl(track.privateAudioUrl) : null,
+  privateCoverUrl: track.privateCoverUrl ? getMediaUrl(track.privateCoverUrl) : null,
+  publicAudioUrl: track.publicAudioUrl ? getMediaUrl(track.publicAudioUrl) : null,
+  publicCoverUrl: track.publicCoverUrl ? getMediaUrl(track.publicCoverUrl) : null,
 }) : track;
 
 const mapMyTrack = (track) => track ? ({
@@ -78,64 +82,72 @@ const mapMyPage = (page = {}) => ({
   totalPages: page.totalPages ?? 0,
 });
 
+export const unwrap = (res) => res?.data ?? res;
+
 export const apiMusicService = {
   async getPublicTracks(params) {
     const data = await request(`/api/music/tracks${cleanMusicParams(params)}`);
-    return mapPage(data);
+    return mapPage(unwrap(data));
   },
 
   async getPublicTrack(id) {
     const data = await request(`/api/music/tracks/${id}`);
-    return mapMusicTrack(data);
+    return mapMusicTrack(unwrap(data));
   },
 
   async getAdminTracks(params) {
     const data = await request(`/api/admin/music/tracks${cleanMusicParams(params)}`);
-    return mapPage(data);
+    return mapPage(unwrap(data));
   },
 
   async getAdminTrack(id) {
     const data = await request(`/api/admin/music/tracks/${id}`);
-    return mapMusicTrack(data);
+    return mapMusicTrack(unwrap(data));
   },
 
   async uploadTrack(formData) {
-    return await request('/api/admin/music/tracks', {
+    const data = await request('/api/admin/music/tracks', {
       method: 'POST',
       body: formData,
     });
+    return unwrap(data);
   },
 
   async updateTrack(id, metadata) {
-    return await request(`/api/admin/music/tracks/${id}`, {
+    const data = await request(`/api/admin/music/tracks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(metadata),
     });
+    return unwrap(data);
   },
 
   async publishTrack(id) {
-    return await request(`/api/admin/music/tracks/${id}/publish`, {
+    const data = await request(`/api/admin/music/tracks/${id}/publish`, {
       method: 'POST',
     });
+    return unwrap(data);
   },
 
   async unpublishTrack(id) {
-    return await request(`/api/admin/music/tracks/${id}/unpublish`, {
+    const data = await request(`/api/admin/music/tracks/${id}/unpublish`, {
       method: 'POST',
     });
+    return unwrap(data);
   },
 
   async approveTrack(id) {
-    return await request(`/api/admin/music/tracks/${id}/approve`, {
+    const data = await request(`/api/admin/music/tracks/${id}/approve`, {
       method: 'POST',
     });
+    return unwrap(data);
   },
 
   async rejectTrack(id, reason) {
-    return await request(`/api/admin/music/tracks/${id}/reject`, {
+    const data = await request(`/api/admin/music/tracks/${id}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+    return unwrap(data);
   },
 
   async deleteTrack(id) {
@@ -146,12 +158,12 @@ export const apiMusicService = {
 
   async getMyTracks(params) {
     const data = await request(`/api/music/my-tracks${cleanMusicParams(params)}`);
-    return mapMyPage(data);
+    return mapMyPage(unwrap(data));
   },
 
   async getMyTrack(id) {
     const data = await request(`/api/music/my-tracks/${id}`);
-    return mapMyTrack(data);
+    return mapMyTrack(unwrap(data));
   },
 
   async uploadMyTrack(formData) {
@@ -159,7 +171,7 @@ export const apiMusicService = {
       method: 'POST',
       body: formData,
     });
-    return mapMyTrack(data);
+    return mapMyTrack(unwrap(data));
   },
 
   async updateMyTrack(id, metadata) {
@@ -167,7 +179,7 @@ export const apiMusicService = {
       method: 'PUT',
       body: JSON.stringify(metadata),
     });
-    return mapMyTrack(data);
+    return mapMyTrack(unwrap(data));
   },
 
   async deleteMyTrack(id) {

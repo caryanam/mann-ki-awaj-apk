@@ -671,6 +671,12 @@ export const apiService = {
     });
   },
 
+  async deleteNotification(notificationId) {
+    return await request(`/api/notifications/${notificationId}`, {
+      method: 'DELETE',
+    });
+  },
+
   // ── EXTENDED ADMIN ENDPOINTS ──
   async adminFetchUsers(search = '') {
     let url = '/api/admin/users?page=0&size=50';

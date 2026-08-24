@@ -63,6 +63,17 @@ export function NotificationProvider({ children }) {
     }
   };
 
+  const deleteNotification = async (id) => {
+    try {
+      await apiService.deleteNotification(id);
+      await refreshNotifications();
+    } catch (err) {
+      console.warn('[NotificationContext] Failed to delete notification:', err.message);
+      // Local fallback
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
@@ -73,6 +84,7 @@ export function NotificationProvider({ children }) {
         refreshNotifications,
         markAsRead,
         markAllAsRead,
+        deleteNotification,
       }}
     >
       {children}

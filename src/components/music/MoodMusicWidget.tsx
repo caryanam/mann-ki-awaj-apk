@@ -22,6 +22,188 @@ const formatTime = (seconds: number) => {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
+const PlayIcon = ({ color = '#FFFFFF', size = 12 }) => (
+  <View style={{
+    width: 0,
+    height: 0,
+    borderLeftWidth: size,
+    borderTopWidth: size * 0.6,
+    borderBottomWidth: size * 0.6,
+    borderStyle: 'solid',
+    backgroundColor: 'transparent',
+    borderLeftColor: color,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    marginLeft: 2,
+  }} />
+);
+
+const PauseIcon = ({ color = '#FFFFFF', size = 12 }) => (
+  <View style={{ flexDirection: 'row', gap: 2.5 }}>
+    <View style={{ width: size * 0.3, height: size, backgroundColor: color, borderRadius: 1 }} />
+    <View style={{ width: size * 0.3, height: size, backgroundColor: color, borderRadius: 1 }} />
+  </View>
+);
+
+const PrevIcon = ({ color = '#6F405F', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ width: 2, height: size, backgroundColor: color, borderRadius: 0.8 }} />
+    <View style={{
+      width: 0,
+      height: 0,
+      borderRightWidth: size * 0.8,
+      borderTopWidth: size * 0.5,
+      borderBottomWidth: size * 0.5,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderRightColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+    }} />
+  </View>
+);
+
+const NextIcon = ({ color = '#6F405F', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{
+      width: 0,
+      height: 0,
+      borderLeftWidth: size * 0.8,
+      borderTopWidth: size * 0.5,
+      borderBottomWidth: size * 0.5,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderLeftColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+    }} />
+    <View style={{ width: 2, height: size, backgroundColor: color, borderRadius: 0.8 }} />
+  </View>
+);
+
+const VolumeIcon = ({ color = '#6F405F', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', width: size * 1.4, height: size }}>
+    <View style={{
+      width: size * 0.35,
+      height: size * 0.4,
+      backgroundColor: color,
+      borderTopLeftRadius: 1,
+      borderBottomLeftRadius: 1,
+    }} />
+    <View style={{
+      width: 0,
+      height: 0,
+      borderRightWidth: size * 0.45,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderRightColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+      marginLeft: -1,
+    }} />
+    <View style={{
+      width: size * 0.4,
+      height: size * 0.7,
+      borderRightWidth: 1.5,
+      borderColor: color,
+      borderTopRightRadius: size * 0.4,
+      borderBottomRightRadius: size * 0.4,
+      marginLeft: 2,
+    }} />
+  </View>
+);
+
+const MuteIcon = ({ color = '#8C8385', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', width: size * 1.4, height: size }}>
+    <View style={{
+      width: size * 0.35,
+      height: size * 0.4,
+      backgroundColor: color,
+      borderTopLeftRadius: 1,
+      borderBottomLeftRadius: 1,
+    }} />
+    <View style={{
+      width: 0,
+      height: 0,
+      borderRightWidth: size * 0.45,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderRightColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+      marginLeft: -1,
+    }} />
+    <View style={{ width: size * 0.35, height: size * 0.35, justifyContent: 'center', alignItems: 'center', marginLeft: 3 }}>
+      <View style={{ position: 'absolute', width: size * 0.35, height: 1.5, backgroundColor: color, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ position: 'absolute', width: size * 0.35, height: 1.5, backgroundColor: color, transform: [{ rotate: '-45deg' }] }} />
+    </View>
+  </View>
+);
+
+const SkipBackwardIcon = ({ color = '#6F405F', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{
+      width: 0,
+      height: 0,
+      borderRightWidth: size * 0.6,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderRightColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+    }} />
+    <View style={{
+      width: 0,
+      height: 0,
+      borderRightWidth: size * 0.6,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderRightColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+      marginLeft: -2.5,
+    }} />
+  </View>
+);
+
+const SkipForwardIcon = ({ color = '#6F405F', size = 12 }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{
+      width: 0,
+      height: 0,
+      borderLeftWidth: size * 0.6,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderLeftColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+    }} />
+    <View style={{
+      width: 0,
+      height: 0,
+      borderLeftWidth: size * 0.6,
+      borderTopWidth: size * 0.45,
+      borderBottomWidth: size * 0.45,
+      borderStyle: 'solid',
+      backgroundColor: 'transparent',
+      borderLeftColor: color,
+      borderTopColor: 'transparent',
+      borderBottomColor: 'transparent',
+      marginLeft: -2.5,
+    }} />
+  </View>
+);
+
 export function MoodMusicWidget() {
   const music = useMoodMusic() as any;
 
@@ -90,24 +272,34 @@ export function MoodMusicWidget() {
   if (!music.currentTrack) return null;
 
   const currentSeconds = music.duration * (music.progress / 100);
-  const defaultCover = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80';
+  const defaultCover = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+
+  const seekForward = () => {
+    if (!music.duration) return;
+    const curr = music.duration * (music.progress / 100);
+    const target = Math.min(music.duration, curr + 10);
+    const newPercent = (target / music.duration) * 100;
+    music.handleSeek(newPercent);
+  };
+
+  const seekBackward = () => {
+    if (!music.duration) return;
+    const curr = music.duration * (music.progress / 100);
+    const target = Math.max(0, curr - 10);
+    const newPercent = (target / music.duration) * 100;
+    music.handleSeek(newPercent);
+  };
 
   return (
-    <Animated.View
-      style={[
-        styles.widgetContainer,
-        {
-          transform: pan.getTranslateTransform(),
-        },
-      ]}
+    <View
+      style={styles.widgetContainer}
     >
       {music.isWidgetOpen ? (
         /* ── 1. EXPANDED MUSIC PLAYER WIDGET ── */
         <View style={styles.expandedCard}>
           {/* Header Drag Area & Close */}
           <View style={styles.header}>
-            <View style={[styles.headerTitleRow, { flex: 1, paddingVertical: 4 }]} {...panResponder.panHandlers}>
-              <Text style={{ fontSize: 10, marginRight: 4 }}>✥</Text>
+            <View style={[styles.headerTitleRow, { flex: 1, paddingVertical: 4 }]}>
               <Text style={styles.headerTitle}>Mood Radio</Text>
             </View>
             <TouchableOpacity onPress={() => music.setIsWidgetOpen(false)} style={styles.closeBtn}>
@@ -157,34 +349,43 @@ export function MoodMusicWidget() {
           {/* Minimal playback controls */}
           <View style={styles.controlsRow}>
             <TouchableOpacity onPress={music.prevTrack} style={styles.controlBtn}>
-              <Text style={styles.controlIconText}>⏮</Text>
+              <PrevIcon size={12} color="#6F405F" />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={seekBackward} style={styles.controlBtn}>
+              <SkipBackwardIcon size={12} color="#6F405F" />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={music.togglePlay} style={styles.playBtn}>
               {music.isBuffering ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : music.isPlaying ? (
+                <PauseIcon size={10} color="#FFFFFF" />
               ) : (
-                <Text style={styles.playIconText}>
-                  {music.isPlaying ? '⏸' : '▶'}
-                </Text>
+                <PlayIcon size={10} color="#FFFFFF" />
               )}
             </TouchableOpacity>
 
+            <TouchableOpacity onPress={seekForward} style={styles.controlBtn}>
+              <SkipForwardIcon size={12} color="#6F405F" />
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={music.nextTrack} style={styles.controlBtn}>
-              <Text style={styles.controlIconText}>⏭</Text>
+              <NextIcon size={12} color="#6F405F" />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={music.toggleMute} style={styles.muteBtn}>
-              <Text style={styles.muteBtnText}>
-                {music.isMuted ? '🔇' : '🔊'}
-              </Text>
+              {music.isMuted ? (
+                <MuteIcon size={14} color="#8C8385" />
+              ) : (
+                <VolumeIcon size={14} color="#6F405F" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
       ) : (
-        /* ── 2. COMPACT DRAGGABLE FLOATING MINI BUBBLE ── */
+        /* ── 2. COMPACT FIXED MINI BUBBLE ── */
         <TouchableOpacity
-          {...panResponder.panHandlers}
           onPress={() => music.setIsWidgetOpen(true)}
           activeOpacity={0.95}
           style={styles.bubble}
@@ -211,21 +412,23 @@ export function MoodMusicWidget() {
           >
             {music.isBuffering ? (
               <ActivityIndicator size="small" color="#FFFFFF" style={{ transform: [{ scale: 0.6 }] }} />
+            ) : music.isPlaying ? (
+              <PauseIcon size={7} color="#FFFFFF" />
             ) : (
-              <Text style={styles.bubblePlayText}>
-                {music.isPlaying ? '⏸' : '▶'}
-              </Text>
+              <PlayIcon size={7} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         </TouchableOpacity>
       )}
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   widgetContainer: {
     position: 'absolute',
+    bottom: 75,
+    right: 16,
     zIndex: 9999,
   },
   bubble: {
@@ -273,18 +476,25 @@ const styles = StyleSheet.create({
   },
 
   expandedCard: {
-    width: 240,
+    width: 290,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#6F405F',
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
     padding: 12,
-    elevation: 16,
+    elevation: 20,
     shadowColor: '#2D1D15',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
     gap: 8,
+  },
+  dragHandleIndicator: {
+    width: 12,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#A09695',
+    marginRight: 6,
   },
   header: {
     flexDirection: 'row',
@@ -315,27 +525,28 @@ const styles = StyleSheet.create({
   trackCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 8,
-    borderRadius: 12,
+    gap: 10,
+    padding: 10,
+    borderRadius: 14,
     backgroundColor: '#FAF5F7',
   },
   trackDisc: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
     borderColor: '#6F405F',
   },
   trackTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
     color: '#2D1D15',
   },
   trackArtist: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#8C8385',
     fontWeight: '600',
+    marginTop: 2,
   },
 
   errorText: {
@@ -360,8 +571,8 @@ const styles = StyleSheet.create({
   },
   progressTrackContainer: {
     flex: 1,
-    height: 4,
-    borderRadius: 2,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#F3EFEF',
     overflow: 'hidden',
   },
@@ -372,27 +583,25 @@ const styles = StyleSheet.create({
   progressBar: {
     height: '100%',
     backgroundColor: '#6F405F',
-    borderRadius: 2,
+    borderRadius: 2.5,
   },
 
   controlsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
-    paddingTop: 2,
+    gap: 12,
+    paddingTop: 4,
   },
   controlBtn: {
-    padding: 6,
-  },
-  controlIconText: {
-    fontSize: 16,
-    color: '#2D1D15',
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   playBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#6F405F',
     justifyContent: 'center',
     alignItems: 'center',
@@ -402,14 +611,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 2 },
   },
-  playIconText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-  },
   muteBtn: {
-    padding: 6,
-  },
-  muteBtnText: {
-    fontSize: 14,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

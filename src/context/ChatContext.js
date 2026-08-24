@@ -15,6 +15,7 @@ export function ChatProvider({ children }) {
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState({});
   const socketRef = useRef(null);
+  const moodCallbacks = useRef([]);
 
   const refreshConversations = async () => {
     if (currentUser) {
@@ -125,6 +126,17 @@ export function ChatProvider({ children }) {
           },
         }));
       }
+    });
+
+    socket.on('mood_updated', () => {
+      console.log('[Socket] Mood updated event received');
+      moodCallbacks.current.forEach(cb => {
+        try {
+          cb();
+        } catch (e) {
+          console.warn('[Socket] Mood callback failed:', e);
+        }
+      });
     });
 
     const heartbeatInterval = setInterval(sendHeartbeat, 25000);
@@ -345,6 +357,19 @@ export function ChatProvider({ children }) {
     );
   };
 
+  const registerMoodCallback = (cb) => {
+    moodCallbacks.current.push(cb);
+    return () => {
+      moodCallbacks.current = moodCallbacks.current.filter(c => c !== cb);
+    };
+  };
+
+  const broadcastMoodUpdate = () => {
+    if (socketRef.current) {
+      socketRef.current.emit('mood_updated');
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -360,6 +385,8 @@ export function ChatProvider({ children }) {
         declineChatRequest,
         onlineUsers,
         getUserPresence,
+        registerMoodCallback,
+        broadcastMoodUpdate,
       }}
     >
       {children}

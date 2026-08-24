@@ -11,9 +11,11 @@ import { styles } from '../../styles/appStyles';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
 import { CommentComposer } from '../../components/posts/CommentComposer';
+import { CheckIcon, TrashIcon, ArrowRightIcon } from '../../components/common/Icons';
+import { Platform } from 'react-native';
 
 export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void }) {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications() as any;
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications() as any;
   const { posts, loadComments, addComment, reactToPost } = usePosts() as any;
   const { currentUser } = useAuth() as any;
   const { t, currentLanguage, translateText, translationCache } = useLanguage() as any;
@@ -22,6 +24,9 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
   const [comments, setComments] = useState<any[]>([]);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [filterUnread, setFilterUnread] = useState(false);
+
+  const displayList = filterUnread ? notifications.filter((n: any) => !n.isRead) : notifications;
 
   const handleOpenPostDetails = async (post: any) => {
     setSelectedPost(post);
@@ -55,6 +60,7 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
 
   return (
     <View style={[styles.feedContainer, { backgroundColor: '#FAF8F8' }]}>
+      {/* Header Bar */}
       <View style={{
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -80,32 +86,51 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
             </View>
           )}
         </View>
-        {unreadCount > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <TouchableOpacity
-            onPress={markAllAsRead}
+            onPress={() => setFilterUnread(!filterUnread)}
             style={{
-              backgroundColor: '#FAF8F8',
+              backgroundColor: filterUnread ? '#6F405F' : '#FAF8F8',
               borderWidth: 1,
-              borderColor: '#E6E1E0',
+              borderColor: filterUnread ? '#6F405F' : '#E6E1E0',
               borderRadius: 12,
               paddingHorizontal: 12,
               paddingVertical: 6,
             }}
           >
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#6F405F' }}>
-              {t('markAllRead', 'Mark all read')}
+            <Text style={{ fontSize: 11, fontWeight: 'bold', color: filterUnread ? '#FFFFFF' : '#6F405F' }}>
+              {filterUnread ? t('showAll', 'Show All') : t('filterUnread', 'Filter Unread')}
             </Text>
           </TouchableOpacity>
-        )}
+          {unreadCount > 0 && (
+            <TouchableOpacity
+              onPress={markAllAsRead}
+              style={{
+                backgroundColor: '#FAF8F8',
+                borderWidth: 1,
+                borderColor: '#E6E1E0',
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#6F405F' }}>
+                {t('markAllRead', 'Mark all read')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {notifications.length === 0 ? (
+      {displayList.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{t('noNotifications', 'No notifications yet.')}</Text>
+          <Text style={styles.emptyText}>
+            {filterUnread ? t('noUnreadNotifications', 'No unread notifications.') : t('noNotifications', 'No notifications yet.')}
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={displayList}
           keyExtractor={item => item.id}
           extraData={{ currentLanguage, translationCache }}
           contentContainerStyle={{ paddingBottom: 110, paddingTop: 4 }}
@@ -206,25 +231,14 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
             });
 
             return (
-              <TouchableOpacity
-                onPress={() => {
-                  markAsRead(item.id);
-                  if (isMessage && onNavigateToChat) {
-                    const cleanUsername = item.actorUsername ? item.actorUsername.replace('@', '') : '';
-                    const cleanInitials = item.actorInitials || 'AN';
-                    const cleanColor = item.actorAvatarColor || '#6F405F';
-                    const authorId = item.senderId || item.actorId || 0;
-                    onNavigateToChat(cleanUsername, authorId, cleanInitials, cleanColor);
-                  } else if (targetPost) {
-                    handleOpenPostDetails(targetPost);
-                  }
-                }}
-                activeOpacity={0.8}
+              <View
                 style={{
                   backgroundColor: item.isRead ? '#FFFFFF' : '#FAF5F8',
                   borderRadius: 14,
                   borderWidth: 1,
                   borderColor: item.isRead ? '#F1ECEF' : '#E6D3DF',
+                  borderLeftWidth: item.isRead ? 1 : 4,
+                  borderLeftColor: item.isRead ? '#F1ECEF' : '#6F405F',
                   padding: 14,
                   marginHorizontal: 16,
                   marginTop: 12,
@@ -234,21 +248,10 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                   shadowOpacity: 0.03,
                   shadowRadius: 5,
                   elevation: 2,
+                  alignItems: 'center',
                   position: 'relative',
                 }}
               >
-                {!item.isRead && (
-                  <View style={{
-                    position: 'absolute',
-                    top: 12,
-                    right: 12,
-                    width: 7,
-                    height: 7,
-                    borderRadius: 3.5,
-                    backgroundColor: '#C46F76',
-                  }} />
-                )}
-
                 <View style={{ width: 40, height: 40, position: 'relative', marginRight: 12 }}>
                   <InitialAvatar initials={item.actorInitials} color={avatarColor} size={40} />
                   {renderBadge()}
@@ -260,7 +263,7 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                     fontSize: 13,
                     fontWeight: item.isRead ? '500' : 'bold',
                     lineHeight: 18,
-                    paddingRight: 10,
+                    paddingRight: 6,
                   }}>
                     {item.message}
                   </Text>
@@ -309,7 +312,73 @@ export function NotificationsScreen({ onNavigateToChat }: { onNavigateToChat?: (
                     </View>
                   )}
                 </View>
-              </TouchableOpacity>
+
+                {/* Action controls row on the right */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                  {(item.targetPostId || item.targetId || isMessage) && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        markAsRead(item.id);
+                        if (isMessage && onNavigateToChat) {
+                          const cleanUsername = item.actorUsername ? item.actorUsername.replace('@', '') : '';
+                          const cleanInitials = item.actorInitials || 'AN';
+                          const cleanColor = item.actorAvatarColor || '#6F405F';
+                          const authorId = item.senderId || item.actorId || 0;
+                          onNavigateToChat(cleanUsername, authorId, cleanInitials, cleanColor);
+                        } else if (targetPost) {
+                          handleOpenPostDetails(targetPost);
+                        }
+                      }}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: '#FAF5F8',
+                        borderWidth: 1,
+                        borderColor: '#E6D3DF',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <ArrowRightIcon color="#6F405F" size={14} />
+                    </TouchableOpacity>
+                  )}
+
+                  {!item.isRead && (
+                    <TouchableOpacity
+                      onPress={() => markAsRead(item.id)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
+                        backgroundColor: '#F0FAF5',
+                        borderWidth: 1,
+                        borderColor: '#D0EFE0',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <CheckIcon color="#10B981" size={14} />
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => deleteNotification(item.id)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: '#FAF0F0',
+                      borderWidth: 1,
+                      borderColor: '#EFD0D0',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TrashIcon color="#EF4444" size={14} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             );
           }}
         />

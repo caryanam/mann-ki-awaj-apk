@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, Alert, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, Alert, Image, StyleSheet } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
-import { LockIcon, ShieldIcon, MicIcon, LanguageIcon, FlagIcon, ProfileIcon, EyeIcon } from '../../components/common/Icons';
+import { LockIcon, ShieldIcon, MicIcon, LanguageIcon, FlagIcon, ProfileIcon, EyeIcon, CheckIcon, TrashIcon, ArrowRightIcon } from '../../components/common/Icons';
 import { AgreementCheckRow } from '../../components/common/AgreementCheckRow';
 import { apiService } from '../../services/apiService';
 
@@ -103,6 +103,7 @@ const EyeOffIcon = ({ color = '#8C8385', size = 18 }) => (
 
 export function AuthScreen() {
   const { login, register, verifyEmailOtp, resendEmailOtp } = useAuth() as any;
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Views: 'landing' | 'login' | 'register' | 'forgot_password'
   const [authView, setAuthView] = useState<'landing' | 'login' | 'register' | 'forgot_password'>('landing');
@@ -395,7 +396,7 @@ export function AuthScreen() {
           >
             <Text style={{ fontSize: 12, color: '#6F405F', fontWeight: '800' }}>← Back</Text>
           </TouchableOpacity>
-          
+
           {/* Logo Circle Container */}
           <View style={{
             width: 80,
@@ -415,7 +416,7 @@ export function AuthScreen() {
           }}>
             <Image source={require('../../assets/logo.png')} style={{ width: 46, height: 46, borderRadius: 10 }} />
           </View>
-          
+
           <Text style={{ fontSize: 26, fontWeight: '900', color: '#6F405F', marginBottom: 8, letterSpacing: -0.5 }}>Welcome Back</Text>
           <Text style={{ fontSize: 13, color: '#8C8385', marginBottom: 28, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 }}>
             Sign in to your account using your registered email or mobile number.
@@ -431,7 +432,7 @@ export function AuthScreen() {
           <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2 }}>
             Email Address or Mobile Number *
           </Text>
-          
+
           {/* Email/Mobile Input Box */}
           <View style={{
             flexDirection: 'row',
@@ -596,7 +597,7 @@ export function AuthScreen() {
             >
               <Text style={{ fontSize: 12, color: '#6F405F', fontWeight: '800' }}>← Back</Text>
             </TouchableOpacity>
-            
+
             {/* Logo Circle Container */}
             <View style={{
               width: 80,
@@ -616,7 +617,7 @@ export function AuthScreen() {
             }}>
               <Image source={require('../../assets/logo.png')} style={{ width: 46, height: 46, borderRadius: 10 }} />
             </View>
-            
+
             <Text style={{ fontSize: 26, fontWeight: '900', color: '#6F405F', marginBottom: 8, letterSpacing: -0.5 }}>Create Account</Text>
             <Text style={{ fontSize: 13, color: '#8C8385', marginBottom: 20, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 }}>
               Your identity stays private. Your voice matters.
@@ -644,7 +645,7 @@ export function AuthScreen() {
             <Text style={{ fontSize: 12, fontWeight: '800', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6, letterSpacing: 0.2 }}>
               Real Full Name (Kept Private) *
             </Text>
-            
+
             {/* Full Name Input Box */}
             <View style={{
               flexDirection: 'row',
@@ -968,7 +969,7 @@ export function AuthScreen() {
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
                 Email Address or Mobile Number *
               </Text>
-              
+
               {/* Email/Mobile Input */}
               <View style={{
                 flexDirection: 'row',
@@ -1037,7 +1038,7 @@ export function AuthScreen() {
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
                 6-Digit OTP Code *
               </Text>
-              
+
               {/* OTP Input */}
               <TextInput
                 maxLength={6}
@@ -1118,7 +1119,7 @@ export function AuthScreen() {
               <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2D1D15', alignSelf: 'flex-start', marginBottom: 6 }}>
                 New Password *
               </Text>
-              
+
               {/* New Password Input */}
               <View style={{
                 flexDirection: 'row',
@@ -1260,182 +1261,272 @@ export function AuthScreen() {
   return (
     <View style={styles.container}>
       {/* Brand Header */}
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingHorizontal: 16 }]}>
-        <Image source={require('../../assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
-        <Text style={styles.headerText}>AwaajManki</Text>
-        <Text style={styles.headerDot}>•</Text>
-        <TouchableOpacity onPress={() => goToView('login')} style={styles.headerLoginShortcut}>
-          <Text style={styles.headerLoginShortcutText}>Login</Text>
-        </TouchableOpacity>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Image source={require('../../assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 6, marginRight: 8 }} />
+          <Text style={[styles.headerText, { fontWeight: 'bold' }]}>Aawaj Man Ki</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity onPress={() => goToView('login')} style={styles.headerLoginShortcut}>
+            <Text style={styles.headerLoginShortcutText}>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => goToView('register')} style={{ backgroundColor: '#D89C7A', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+            <Text style={{ color: '#0B0A16', fontSize: 12, fontWeight: 'bold' }}>Get Started</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ flex: 1 }}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 40 }} style={{ flex: 1, backgroundColor: '#FFF8F2' }}>
         {/* 1. HERO SECTION */}
-        <View style={styles.landingHeroBlock}>
-          <View style={styles.badgeBanner}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ShieldIcon color="#C46F76" size={12} />
-              <Text style={[styles.badgeBannerText, { marginLeft: 6 }]}>India's Anonymous Discussion Platform</Text>
+        <View style={landingStyles.heroBlock}>
+          {/* Marathi Tagline Pill */}
+          <View style={landingStyles.taglinePill}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <ShieldIcon color="#F2B08D" size={14} />
+              <Text style={{ color: '#F2B08D', fontWeight: 'bold', fontSize: 13 }}>
+                मनातलं बोला… ओळख सुरक्षित ठेवा.
+              </Text>
             </View>
           </View>
-          <Text style={styles.landingHeroHeadline}>
+          
+          <Text style={landingStyles.heroTitle}>
             Where Thoughts{'\n'}Matter More{'\n'}
-            <Text style={{ color: COLORS.warning }}>Than Identity.</Text>
+            <Text style={{ color: '#F2B08D' }}>Than Identity.</Text>
           </Text>
-          <Text style={styles.landingHeroSubText}>
-            Share your thoughts, experiences and opinions without revealing your identity. AI moderation keeps discussions respectful.
+          
+          <Text style={landingStyles.heroSub}>
+            Share your thoughts, opinions, experiences and emotions freely without revealing who you are. AI-powered moderation keeps conversations respectful, meaningful and safe.
           </Text>
 
-          <View style={styles.landingHeroCtaRow}>
-            <TouchableOpacity onPress={() => goToView('register')} style={styles.landingHeroCtaBtnPrimary}>
-              <Text style={styles.landingHeroCtaTextPrimary}>Get Started</Text>
+          <View style={{ flexDirection: 'row', gap: 14, marginBottom: 28 }}>
+            <TouchableOpacity onPress={() => goToView('register')} style={landingStyles.btnPrimary}>
+              <Text style={{ color: '#0B0A16', fontWeight: '900', fontSize: 14 }}>Get Started</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => goToView('login')} style={styles.landingHeroCtaBtnSecondary}>
-              <Text style={styles.landingHeroCtaTextSecondary}>Sign In</Text>
+            <TouchableOpacity onPress={() => scrollViewRef.current?.scrollTo({ y: 440, animated: true })} style={landingStyles.btnSecondary}>
+              <Text style={{ color: '#F2B08D', fontWeight: '900', fontSize: 14 }}>Explore Features</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Trust badges */}
-          <View style={styles.trustBadgesGrid}>
-            <View style={styles.trustBadgeItem}>
-              <LockIcon color="#FF8E95" size={20} />
-              <Text style={[styles.trustBadgeLabel, { marginTop: 4 }]}>Anonymous</Text>
+          {/* Web-aligned Trust Badges Row */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)', paddingTop: 20, width: '100%' }}>
+            {['Anonymous by Design', 'AI Moderated', 'Voice-to-Text', 'Indian Languages'].map((badge) => (
+              <View key={badge} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.04)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 100 }}>
+                <Text style={{ fontSize: 11, color: '#F2B08D' }}>✓</Text>
+                <Text style={{ color: '#E4DDD9', fontSize: 11.5, fontWeight: '500' }}>{badge}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* 2. WHY AAWAJ MAN KI? (COMPARISON SECTION) */}
+        <View style={landingStyles.section}>
+          <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#6F405F', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>
+            Why Aawaj Man Ki?
+          </Text>
+          <Text style={landingStyles.sectionTitle}>
+            Social media is built for followers. We are built for conversations.
+          </Text>
+          <Text style={landingStyles.sectionTitleSub}>
+            A calm, judgment-free space designed for ideas, empathy, and your authentic voice.
+          </Text>
+
+          {/* Comparison Cards Grid (Traditional Social Media VS Aawaj Man Ki) */}
+          <View style={{ gap: 16 }}>
+            {/* Traditional Social Media */}
+            <View style={{ padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#E8DDD5', backgroundColor: '#FAF6F4', position: 'relative' }}>
+              <Text style={{ fontSize: 13.5, fontWeight: '900', color: '#8C8385', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Traditional Social Media
+              </Text>
+              <View style={{ gap: 10 }}>
+                {['Followers', 'Likes', 'Personal Branding', 'Identity', 'Popularity', 'Toxicity & Hate'].map((item) => (
+                  <View key={item} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(239, 68, 68, 0.08)', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, color: '#EF4444', fontWeight: 'bold', marginTop: -1 }}>✕</Text>
+                    </View>
+                    <Text style={{ fontSize: 13.5, color: '#5C5254', fontWeight: '500' }}>{item}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-            <View style={styles.trustBadgeItem}>
-              <ShieldIcon color="#FF8E95" size={20} />
-              <Text style={[styles.trustBadgeLabel, { marginTop: 4 }]}>AI Moderated</Text>
+
+            {/* VS Badge */}
+            <View style={{ alignSelf: 'center', zIndex: 1, marginVertical: -8 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#6F405F', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF8F2' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '900' }}>VS</Text>
+              </View>
             </View>
-            <View style={styles.trustBadgeItem}>
-              <MicIcon color="#FF8E95" size={20} />
-              <Text style={[styles.trustBadgeLabel, { marginTop: 4 }]}>Voice-to-Text</Text>
-            </View>
-            <View style={styles.trustBadgeItem}>
-              <LanguageIcon color="#FF8E95" size={20} />
-              <Text style={[styles.trustBadgeLabel, { marginTop: 4 }]}>Languages</Text>
+
+            {/* Aawaj Man Ki */}
+            <View style={{ padding: 20, borderRadius: 20, borderWidth: 1.5, borderColor: '#6F405F', backgroundColor: '#FFFDFB', shadowColor: '#6F405F', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
+              <Text style={{ fontSize: 13.5, fontWeight: '900', color: '#6F405F', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Aawaj Man Ki
+              </Text>
+              <View style={{ gap: 10 }}>
+                {['Anonymous', 'Respectful', 'Ideas First', 'AI Moderated', 'Meaningful Discussions', 'Toxicity Free'].map((item) => (
+                  <View key={item} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(16, 185, 129, 0.08)', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, color: '#10B981', fontWeight: 'bold', marginTop: -0.5 }}>✓</Text>
+                    </View>
+                    <Text style={{ fontSize: 13.5, color: '#2D1D15', fontWeight: 'bold' }}>{item}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
         </View>
 
-        {/* 2. FEATURES SECTION */}
-        <View style={styles.landingSection}>
-          <Text style={styles.landingSectionTitle}>What Makes Us Different</Text>
+        {/* 3. WHAT MAKES US DIFFERENT */}
+        <View style={[landingStyles.section, { backgroundColor: '#F9F5F3' }]}>
+          <Text style={landingStyles.sectionTitle}>What Makes Us Different</Text>
           <View style={styles.landingTitleDivider} />
 
-          <View style={styles.featureCardItem}>
-            <View style={styles.featureCardIconCircle}>
+          {/* Premium Feature Cards */}
+          <View style={landingStyles.featureCard}>
+            <View style={landingStyles.featureIcon}>
               <LockIcon color="#6F405F" size={24} />
             </View>
-            <Text style={styles.featureCardHeader}>Anonymous by Design</Text>
-            <Text style={styles.featureCardBody}>No real names. No public profiles. Custom anonymous avatars generated for you.</Text>
+            <Text style={landingStyles.featureTitle}>Anonymous by Design</Text>
+            <Text style={landingStyles.featureBody}>No real names. No public profiles. Pure text & voice expression.</Text>
+            <TouchableOpacity onPress={() => setAboutVisible(true)}>
+              <Text style={landingStyles.learnMoreText}>Learn More →</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.featureCardItem}>
-            <View style={styles.featureCardIconCircle}>
+          <View style={landingStyles.featureCard}>
+            <View style={landingStyles.featureIcon}>
               <ShieldIcon color="#6F405F" size={24} />
             </View>
-            <Text style={styles.featureCardHeader}>AI-Powered Safety</Text>
-            <Text style={styles.featureCardBody}>Detects hate speech. Filters harassment. Keeps community conversations safe.</Text>
+            <Text style={landingStyles.featureTitle}>AI-Powered Safety</Text>
+            <Text style={landingStyles.featureBody}>Detects hate speech. Filters abuse. Protects conversations.</Text>
+            <TouchableOpacity onPress={() => setGuidelinesVisible(true)}>
+              <Text style={landingStyles.learnMoreText}>Learn More →</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.featureCardItem}>
-            <View style={styles.featureCardIconCircle}>
+          <View style={landingStyles.featureCard}>
+            <View style={landingStyles.featureIcon}>
               <MicIcon color="#6F405F" size={24} />
             </View>
-            <Text style={styles.featureCardHeader}>Voice-to-Text</Text>
-            <Text style={styles.featureCardBody}>Speak naturally. Supports local Indian languages. Voice files are deleted after translation.</Text>
+            <Text style={landingStyles.featureTitle}>Voice-to-Text</Text>
+            <Text style={landingStyles.featureBody}>Speak naturally. Supports Indian languages. Audio deleted after processing.</Text>
+            <TouchableOpacity onPress={() => setAboutVisible(true)}>
+              <Text style={landingStyles.learnMoreText}>Learn More →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick bullet points */}
+          <View style={{ gap: 12, marginTop: 8 }}>
+            {[
+              { title: 'Discussion First', desc: 'Ideas over popularity. Quality conversations that matter.' },
+              { title: 'Privacy First', desc: 'No identity exposure. No follower counts. Privacy by default.' },
+              { title: 'Community Moderation', desc: 'Report harmful content. Human + AI review for healthy discussions.' },
+            ].map((item) => (
+              <View key={item.title} style={{ padding: 16, borderRadius: 16, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EBE6E4' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#6F405F', marginBottom: 4 }}>{item.title}</Text>
+                <Text style={{ fontSize: 12.5, color: '#8C8385', lineHeight: 17 }}>{item.desc}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* 3. HOW IT WORKS */}
-        <View style={[styles.landingSection, { backgroundColor: '#FFFFFF', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E1DCDB' }]}>
-          <Text style={styles.landingSectionTitle}>How It Works</Text>
+        {/* 4. HOW IT WORKS */}
+        <View style={[landingStyles.section, { backgroundColor: '#FFFFFF', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#EBE6E4' }]}>
+          <Text style={landingStyles.sectionTitle}>How It Works</Text>
           <View style={styles.landingTitleDivider} />
 
-          <View style={styles.howItWorksRow}>
-            <View style={styles.howItWorksNumberBox}><Text style={styles.howItWorksNumber}>1</Text></View>
-            <View style={styles.howItWorksContent}>
-              <Text style={styles.howItWorksTitle}>Register Privately</Text>
-              <Text style={styles.howItWorksBody}>Your phone number and name are kept strictly private.</Text>
-            </View>
-          </View>
-
-          <View style={styles.howItWorksRow}>
-            <View style={styles.howItWorksNumberBox}><Text style={styles.howItWorksNumber}>2</Text></View>
-            <View style={styles.howItWorksContent}>
-              <Text style={styles.howItWorksTitle}>Write Anonymously</Text>
-              <Text style={styles.howItWorksBody}>Publish thoughts with initials-based colored avatars.</Text>
-            </View>
-          </View>
-
-          <View style={styles.howItWorksRow}>
-            <View style={styles.howItWorksNumberBox}><Text style={styles.howItWorksNumber}>3</Text></View>
-            <View style={styles.howItWorksContent}>
-              <Text style={styles.howItWorksTitle}>Interact with Empathy</Text>
-              <Text style={styles.howItWorksBody}>React with helpful support emojis or send safe anonymous DMs.</Text>
-            </View>
-          </View>
-
-          <View style={styles.howItWorksRow}>
-            <View style={styles.howItWorksNumberBox}><Text style={styles.howItWorksNumber}>4</Text></View>
-            <View style={styles.howItWorksContent}>
-              <Text style={styles.howItWorksTitle}>Safe Spaces</Text>
-              <Text style={styles.howItWorksBody}>Real-time automated content filtration keeps discussions respectful.</Text>
-            </View>
+          {/* Timeline Connector Layout */}
+          <View style={{ position: 'relative', paddingLeft: 12 }}>
+            {/* Vertical Line */}
+            <View style={{ position: 'absolute', left: 24, top: 20, bottom: 20, width: 2, backgroundColor: '#EBE6E4', borderStyle: 'dashed' }} />
+            
+            {[
+              { num: '1', title: 'Register Privately', body: 'Your phone number and name are kept strictly private.' },
+              { num: '2', title: 'Write Anonymously', body: 'Publish thoughts with initials-based colored avatars.' },
+              { num: '3', title: 'Interact with Empathy', body: 'React with helpful support emojis or send safe anonymous DMs.' },
+              { num: '4', title: 'Safe Spaces', body: 'Real-time automated content filtration keeps discussions respectful.' },
+            ].map((step, idx) => (
+              <View key={step.num} style={{ flexDirection: 'row', marginBottom: idx === 3 ? 0 : 24, gap: 16, alignItems: 'flex-start' }}>
+                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#6F405F', justifyContent: 'center', alignItems: 'center', zIndex: 1 }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' }}>{step.num}</Text>
+                </View>
+                <View style={{ flex: 1, marginTop: 2 }}>
+                  <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15', marginBottom: 4 }}>{step.title}</Text>
+                  <Text style={{ fontSize: 13, color: '#8C8385', lineHeight: 18 }}>{step.body}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* 4. SAFETY RULES */}
-        <View style={styles.landingSection}>
-          <Text style={styles.landingSectionTitle}>Safety First Policy</Text>
-          <View style={styles.landingTitleDivider} />
-
-          <View style={styles.safetyBulletBlock}>
-            <View style={{ marginRight: 10, marginTop: 2 }}>
-              <FlagIcon color="#C46F76" size={16} />
-            </View>
-            <Text style={styles.safetyBulletText}>
-              Zero tolerance policy for hate speech, harassment, spam, and personal info exposure.
-            </Text>
-          </View>
-          <View style={styles.safetyBulletBlock}>
-            <View style={{ marginRight: 10, marginTop: 2 }}>
-              <ShieldIcon color="#6F405F" size={16} />
-            </View>
-            <Text style={styles.safetyBulletText}>
-              Automated moderation classification runs before any post or comment goes public.
-            </Text>
-          </View>
-          <View style={styles.safetyBulletBlock}>
-            <View style={{ marginRight: 10, marginTop: 2 }}>
-              <ProfileIcon color="#6F405F" size={16} />
-            </View>
-            <Text style={styles.safetyBulletText}>
-              Flagged content is reviewed by human admins, allowing direct post hide or author ban actions.
-            </Text>
+        {/* 5. BUILT FOR EVERY VOICE */}
+        <View style={landingStyles.section}>
+          <Text style={landingStyles.sectionTitle}>Built for Every Voice</Text>
+          <Text style={landingStyles.sectionTitleSub}>
+            A space for every Indian who wants to share, listen and connect.
+          </Text>
+          
+          {/* Badge capsules grid */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+            {['Students', 'Young Professionals', 'Creators', 'Thinkers', 'Dreamers', 'Parents', 'Professionals', 'Anyone'].map((tag) => (
+              <View key={tag} style={landingStyles.voiceChip}>
+                <Text style={landingStyles.voiceChipText}>{tag}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* 5. FOOTER POLICY NAV */}
-        <View style={styles.landingFooterNav}>
-          <Text style={styles.footerBrandTitle}>AwaajManki</Text>
-          <Text style={styles.footerBrandDesc}>An 18+ anonymous, text-first social space for authentic thoughts.</Text>
+        {/* 6. A SANCTUARY FOR ALL (TESTIMONIAL CARD) */}
+        <View style={[landingStyles.section, { backgroundColor: '#FAF5F2', alignItems: 'center' }]}>
+          <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 }}>
+            A Sanctuary For All
+          </Text>
+          
+          <View style={landingStyles.testimonialCard}>
+            {/* Watermark Quote */}
+            <Text style={{ position: 'absolute', top: -14, left: 16, fontSize: 80, color: 'rgba(255, 255, 255, 0.08)', fontWeight: 'bold' }}>“</Text>
+            
+            <Text style={landingStyles.testimonialQuote}>
+              "Finally a platform where my thoughts matter more than my job title or social standing."
+            </Text>
+            <Text style={landingStyles.testimonialAuthor}>— Anonymous Creator</Text>
+          </View>
+        </View>
 
-          <View style={styles.footerLinksGrid}>
-            <TouchableOpacity onPress={() => setAboutVisible(true)} style={styles.footerNavLink}>
-              <Text style={styles.footerNavLinkText}>About Platform</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setGuidelinesVisible(true)} style={styles.footerNavLink}>
-              <Text style={styles.footerNavLinkText}>Guidelines</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPrivacyVisible(true)} style={styles.footerNavLink}>
-              <Text style={styles.footerNavLinkText}>Privacy Policy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setContactVisible(true)} style={styles.footerNavLink}>
-              <Text style={styles.footerNavLinkText}>Contact Support</Text>
-            </TouchableOpacity>
+        {/* 7. FOOTER SUPPORT & CONTACT */}
+        <View style={landingStyles.footerBlock}>
+          <Text style={landingStyles.footerBrand}>Aawaj Man Ki</Text>
+          <Text style={landingStyles.footerDesc}>
+            Your trusted platform for anonymous, safe, and judgment-free conversations. AI-powered moderation keeps discussions respectful and toxicity-free.
+          </Text>
+
+          {/* Quick Links Section */}
+          <Text style={landingStyles.footerHeader}>Quick Links</Text>
+          <View style={{ flexDirection: 'row', gap: 16, marginBottom: 12 }}>
+            <TouchableOpacity onPress={() => scrollViewRef.current?.scrollTo({ y: 0, animated: true })}><Text style={landingStyles.footerTextLink}>Home</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => scrollViewRef.current?.scrollTo({ y: 440, animated: true })}><Text style={landingStyles.footerTextLink}>Features</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => scrollViewRef.current?.scrollTo({ y: 1460, animated: true })}><Text style={landingStyles.footerTextLink}>How It Works</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setAboutVisible(true)}><Text style={landingStyles.footerTextLink}>About Us</Text></TouchableOpacity>
           </View>
 
-          <Text style={styles.footerCopyright}>© 2026 AwaajManki. Privacy Guaranteed.</Text>
+          {/* Resources */}
+          <Text style={landingStyles.footerHeader}>Resources</Text>
+          <View style={{ flexDirection: 'row', gap: 16, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <TouchableOpacity onPress={() => setGuidelinesVisible(true)}><Text style={landingStyles.footerTextLink}>FAQs</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setPrivacyVisible(true)}><Text style={landingStyles.footerTextLink}>Privacy Policy</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setGuidelinesVisible(true)}><Text style={landingStyles.footerTextLink}>Guidelines</Text></TouchableOpacity>
+          </View>
+
+          {/* Contact Details */}
+          <Text style={landingStyles.footerHeader}>Contact Us</Text>
+          <View style={{ gap: 8, marginBottom: 12, alignItems: 'center' }}>
+            <Text style={landingStyles.footerContactText}>✉ support@awaazmanki.com</Text>
+            <Text style={landingStyles.footerContactText}>📞 +91 99999 99999</Text>
+            <Text style={landingStyles.footerContactText}>📍 Pune, Maharashtra</Text>
+          </View>
+
+          <View style={landingStyles.footerDivider} />
+
+          <Text style={landingStyles.footerCopy}>© 2026 Aawaj Man Ki. All rights reserved by Caryanamindia Pvt Ltd</Text>
         </View>
       </ScrollView>
 
@@ -1596,5 +1687,231 @@ export function AuthScreen() {
     </View>
   );
 }
+
+const landingStyles = StyleSheet.create({
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0ECE9',
+    paddingVertical: 12,
+    elevation: 3,
+    shadowColor: '#2D1D15',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  navLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8C8385',
+  },
+  heroBlock: {
+    backgroundColor: '#1E101D', // Deeper plum
+    paddingVertical: 44,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  taglinePill: {
+    backgroundColor: 'rgba(242, 176, 141, 0.12)',
+    borderColor: 'rgba(242, 176, 141, 0.35)',
+    borderWidth: 1.2,
+    borderRadius: 100,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  heroTitle: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 42,
+    marginBottom: 14,
+    letterSpacing: -0.5,
+  },
+  heroSub: {
+    color: '#E6DDD8',
+    fontSize: 13.5,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 12,
+    marginBottom: 28,
+  },
+  btnPrimary: {
+    backgroundColor: '#F2B08D',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 26,
+    shadowColor: '#F2B08D',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  btnSecondary: {
+    borderColor: 'rgba(242, 176, 141, 0.5)',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+  },
+  section: {
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFDFB',
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#2D1D15',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 8,
+  },
+  sectionTitleSub: {
+    fontSize: 13.5,
+    color: '#8C8385',
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 16,
+    marginBottom: 28,
+  },
+  featureCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#F0EBE9',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#2D1D15',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  featureIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(111, 64, 95, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  featureTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#6F405F',
+    marginBottom: 8,
+  },
+  featureBody: {
+    fontSize: 13,
+    color: '#8C8385',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  learnMoreText: {
+    color: '#6F405F',
+    fontSize: 12.5,
+    fontWeight: '800',
+    marginTop: 14,
+  },
+  voiceChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EBE6E4',
+  },
+  voiceChipText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#6F405F',
+  },
+  testimonialCard: {
+    backgroundColor: '#4A2B40', // Immersive dark plum
+    padding: 28,
+    borderRadius: 24,
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  testimonialQuote: {
+    fontSize: 17,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 14,
+    zIndex: 1,
+  },
+  testimonialAuthor: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#F2B08D',
+    zIndex: 1,
+  },
+  footerBlock: {
+    backgroundColor: '#1E0E18', // Deep rich black-plum
+    padding: 32,
+    alignItems: 'center',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: 20,
+  },
+  footerBrand: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#F2B08D',
+    marginBottom: 8,
+  },
+  footerDesc: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 24,
+    paddingHorizontal: 12,
+  },
+  footerHeader: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#F2B08D',
+    marginTop: 18,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  footerTextLink: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontWeight: '600',
+  },
+  footerContactText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  footerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: '100%',
+    marginVertical: 18,
+  },
+  footerCopy: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.45)',
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: 8,
+  },
+});
 
 // ── CUSTOM COMPONENT: COMMENT ITEM WITH NESTED REPLIES ──

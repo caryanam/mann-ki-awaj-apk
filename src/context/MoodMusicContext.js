@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { apiMusicService } from '../services/apiMusicService';
+import { localStorage } from '../services/localStorage';
+import { Alert } from 'react-native';
 
 const MoodMusicContext = createContext(null);
 
@@ -56,7 +58,13 @@ export function MoodMusicProvider({ children }) {
   }, []);
 
   const playAt = useCallback(async (index, nextQueue = queueRef.current) => {
-    const tracks = Array.isArray(nextQueue) ? nextQueue.filter((track) => track?.audioUrl) : [];
+    const tracks = Array.isArray(nextQueue)
+      ? nextQueue.map((track) => ({
+          ...track,
+          audioUrl: track?.audioUrl || track?.privateAudioUrl || track?.publicAudioUrl,
+          coverUrl: track?.coverUrl || track?.privateCoverUrl || track?.publicCoverUrl || track?.cover,
+        })).filter((track) => track?.audioUrl)
+      : [];
     if (!tracks.length) {
       setPlaybackError('This track has no playable audio source.');
       return;
@@ -81,7 +89,15 @@ export function MoodMusicProvider({ children }) {
       setIsPlaying(true);
       setIsWidgetOpen(true);
 
-      await audioPlayerRef.current.startPlayer(track.audioUrl);
+      const token = localStorage.getItem('auth_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      let playUrl = track.audioUrl;
+      if (token && playUrl && (playUrl.includes('/api/admin/') || playUrl.includes('/api/music/'))) {
+        const separator = playUrl.includes('?') ? '&' : '?';
+        playUrl = `${playUrl}${separator}token=${token}&access_token=${token}`;
+      }
+
+      await audioPlayerRef.current.startPlayer(playUrl, headers);
       setIsBuffering(false);
       audioPlayerRef.current.setVolume(isMuted ? 0.0 : volume);
 
@@ -100,6 +116,10 @@ export function MoodMusicProvider({ children }) {
       setIsPlaying(false);
       setIsBuffering(false);
       setPlaybackError('Unable to play this track. Please try another track.');
+      Alert.alert(
+        'Playback Error Diagnosis',
+        `Track Title: ${track?.title || 'N/A'}\nPlay URL: ${track?.audioUrl || 'N/A'}\nError: ${err?.message || err}`
+      );
     }
   }, [volume, isMuted]);
 
@@ -133,7 +153,14 @@ export function MoodMusicProvider({ children }) {
         try {
           await audioPlayerRef.current.resumePlayer();
         } catch (e) {
-          await audioPlayerRef.current.startPlayer(currentTrack.audioUrl);
+          const token = localStorage.getItem('auth_token');
+          const headers = token ? { Authorization: `Bearer ${token}` } : {};
+          let playUrl = currentTrack.audioUrl;
+          if (token && playUrl && (playUrl.includes('/api/admin/') || playUrl.includes('/api/music/'))) {
+            const separator = playUrl.includes('?') ? '&' : '?';
+            playUrl = `${playUrl}${separator}token=${token}&access_token=${token}`;
+          }
+          await audioPlayerRef.current.startPlayer(playUrl, headers);
         }
         setIsBuffering(false);
         audioPlayerRef.current.setVolume(isMuted ? 0.0 : volume);

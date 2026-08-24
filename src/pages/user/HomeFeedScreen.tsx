@@ -85,13 +85,13 @@ const requestCameraPermission = async () => {
 };
 
 const EMOJI_PRESETS = [
-  '💡', '🧘', '🚀', '🎭', '🧠', '🎨', '🎵', '📚', '🏆', '💻', 
-  '🔮', '🍿', '☕', '🎮', '🌿', '✈️', '💬', '✨', '🔥', '💖', 
+  '💡', '🧘', '🚀', '🎭', '🧠', '🎨', '🎵', '📚', '🏆', '💻',
+  '🔮', '🍿', '☕', '🎮', '🌿', '✈️', '💬', '✨', '🔥', '💖',
   '🤫', '🌟', '🎯', '⚡', '👑', '🌈', '🍀', '🍕', '🎉', '🥊'
 ];
 
-export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialTopic, _onNavigateToCreatePost }: { 
-  onNavigateToChat: any; 
+export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialTopic, _onNavigateToCreatePost }: {
+  onNavigateToChat: any;
   initialTopic?: string;
   onClearInitialTopic?: () => void;
   _onNavigateToCreatePost?: (topicName: string) => void;
@@ -437,8 +437,8 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
 
     // Filter by active category tab if selected
     if (activeCategoryTab !== 'All') {
-      baseCategories = baseCategories.filter(cat => 
-        cat.name.toLowerCase() === activeCategoryTab.toLowerCase() || 
+      baseCategories = baseCategories.filter(cat =>
+        cat.name.toLowerCase() === activeCategoryTab.toLowerCase() ||
         cat.categoryKey === activeCategoryTab
       );
     }
@@ -479,9 +479,9 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
       const q = searchQuery.toLowerCase().trim();
       baseCategories = baseCategories.map(cat => {
         const matchCategoryName = cat.name.toLowerCase().includes(q) || t(cat.categoryKey, cat.name).toLowerCase().includes(q);
-        const matchingSubtopics = cat.subtopics.filter((st: any) => 
-          st.label.toLowerCase().includes(q) || 
-          st.id.toLowerCase().includes(q) || 
+        const matchingSubtopics = cat.subtopics.filter((st: any) =>
+          st.label.toLowerCase().includes(q) ||
+          st.id.toLowerCase().includes(q) ||
           t(st.id, st.label).toLowerCase().includes(q)
         );
 
@@ -657,7 +657,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
           {/* Hero Banner Card */}
           <View style={localStyles.heroCard}>
             <View style={localStyles.heroBannerPill}>
-              <Text style={localStyles.heroBannerPillText}>मनातलं बोला… ओळख सुरक्षित ठेवा.</Text>
+              <Text style={localStyles.heroBannerPillText}>✨ मनातलं बोला… ओळख सुरक्षित ठेवा.</Text>
             </View>
             <Text style={localStyles.heroTitle}>
               {t('exploreTopicCatalog', 'Discover & Join Topic Channels')}
@@ -675,7 +675,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
           {/* Search Box inside Catalog view */}
           <View style={localStyles.searchBarContainer}>
             <TextInput
-              placeholder={t('searchTopicsCatalogPlaceholder', 'Search topics or subtopics (e.g. Shayari, Love, Cricket)...')}
+              placeholder={t('searchTopicsCatalogPlaceholder', 'Search topics or subtopics (e.g. Shayari, Love, Cricket, Politics, Job)...')}
               placeholderTextColor={COLORS.zorba}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -849,7 +849,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
                     <Text style={localStyles.trendingBadgeText}>TRENDING TOPIC</Text>
                   </View>
                 </View>
-                
+
                 {/* Stats Row */}
                 <View style={localStyles.topicDetailStatsRow}>
                   <Text style={localStyles.topicDetailStatsText}>
@@ -970,57 +970,165 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
         onRequestClose={() => setCustomTopicModalVisible(false)}
       >
         <SafeAreaView style={appStyles.centerModalOverlay}>
-          <View style={[appStyles.reportModalCard, { width: '90%', maxHeight: '80%' }]}>
-            <Text style={appStyles.reportModalTitle}>➕ Create Custom Topic</Text>
-            <Text style={appStyles.reportModalSubtitle}>Create a new topic handle for anonymous discussions.</Text>
+          <View style={{
+            width: '90%',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 24,
+            padding: 22,
+            borderWidth: 1,
+            borderColor: '#EFEAE8',
+            shadowColor: '#2D1D15',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.15,
+            shadowRadius: 20,
+            elevation: 10,
+          }}>
+            {/* Header with Title and Close button */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#6F405F' }}>➕ Create Custom Topic</Text>
+              <TouchableOpacity onPress={() => setCustomTopicModalVisible(false)} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#8C8385' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 12.5, color: '#8C8385', lineHeight: 17, marginBottom: 16 }}>
+              Create a new topic handle for anonymous discussions.
+            </Text>
 
             {/* Emoji selector preset grid */}
-            <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', marginTop: 12, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#6F405F', marginBottom: 8 }}>
               Choose Topic Emoji Logo * ({selectedEmoji})
             </Text>
-            <View style={{ height: 110, backgroundColor: '#FAF6F8', borderRadius: 14, borderWidth: 1, borderColor: '#EFEAE8', padding: 8 }}>
-              <ScrollView contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }} showsVerticalScrollIndicator={true}>
-                {EMOJI_PRESETS.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    onPress={() => setSelectedEmoji(emoji)}
-                    style={[
-                      { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-                      selectedEmoji === emoji && { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#6F405F' }
-                    ]}
-                  >
-                    <Text style={{ fontSize: 18 }}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
+            <View style={{
+              height: 120,
+              backgroundColor: '#FAF6F8',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#EFEAE8',
+              padding: 10
+            }}>
+              <ScrollView
+                contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', paddingVertical: 4 }}
+                showsVerticalScrollIndicator={true}
+              >
+                {EMOJI_PRESETS.map((emoji) => {
+                  const isSelected = selectedEmoji === emoji;
+                  return (
+                    <TouchableOpacity
+                      key={emoji}
+                      onPress={() => setSelectedEmoji(emoji)}
+                      style={[
+                        {
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'transparent',
+                        },
+                        isSelected && {
+                          backgroundColor: '#FFFFFF',
+                          borderWidth: 1.5,
+                          borderColor: '#6F405F',
+                          shadowColor: '#6F405F',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 6,
+                          elevation: 3,
+                        }
+                      ]}
+                    >
+                      <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
             {/* Topic Channel Name Input */}
-            <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', marginTop: 14, marginBottom: 6 }}>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#6F405F', marginTop: 16, marginBottom: 8 }}>
               Topic Channel Name *
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#6F405F' }}>{selectedEmoji} #</Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1.5,
+              borderColor: '#CEC7C5',
+              borderRadius: 14,
+              backgroundColor: '#FAF8F8',
+              overflow: 'hidden',
+              height: 50
+            }}>
+              <View style={{
+                paddingHorizontal: 12,
+                height: '100%',
+                justifyContent: 'center',
+                backgroundColor: '#FAF6F8',
+                borderRightWidth: 1.5,
+                borderRightColor: '#CEC7C5',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                <Text style={{ fontSize: 18 }}>{selectedEmoji}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#6F405F' }}>#</Text>
+              </View>
               <TextInput
-                placeholder="e.g. WELLNESS, FINANCE, TRAVEL"
+                placeholder="e.g. WELLNESS"
                 placeholderTextColor={COLORS.zorba}
                 value={newCustomTopicName}
                 onChangeText={(val) => setNewCustomTopicName(val.toUpperCase().replace(/\s+/g, '_'))}
-                style={[appStyles.input, { flex: 1, textTransform: 'uppercase', fontWeight: 'bold', marginTop: 0 }]}
+                style={{
+                  flex: 1,
+                  height: '100%',
+                  paddingHorizontal: 14,
+                  fontSize: 14,
+                  color: '#2D1D15',
+                  textTransform: 'uppercase',
+                  fontWeight: 'bold',
+                }}
                 maxLength={20}
                 autoCapitalize="characters"
+                multiline={false}
               />
             </View>
-            <Text style={{ fontSize: 10.5, color: '#8C8385', marginTop: 6, lineHeight: 14 }}>
+            <Text style={{ fontSize: 10.5, color: '#9C9395', marginTop: 8, lineHeight: 14 }}>
               User created topics start at the bottom catalog card until they receive posts & activity!
             </Text>
 
-            <View style={[appStyles.reportActionRow, { marginTop: 18 }]}>
-              <TouchableOpacity onPress={() => setCustomTopicModalVisible(false)} style={appStyles.reportCancelButton}>
-                <Text style={appStyles.reportCancelText}>Cancel</Text>
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', marginTop: 22, gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setCustomTopicModalVisible(false)}
+                style={{
+                  flex: 1,
+                  height: 46,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1.5,
+                  borderColor: '#CEC7C5',
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#8C8385' }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleAddCustomTopic} style={[appStyles.reportSubmitButton, { backgroundColor: COLORS.deepPlum }]}>
-                <Text style={appStyles.reportSubmitText}>Create Topic</Text>
+              <TouchableOpacity
+                onPress={handleAddCustomTopic}
+                style={{
+                  flex: 2,
+                  height: 46,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#6F405F',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>Create Topic</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1135,7 +1243,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
       >
         <SafeAreaView style={localStyles.modalOverlay}>
           <View style={localStyles.createModalCard}>
-            
+
             {/* Modal Header */}
             <View style={localStyles.modalHeaderRow}>
               <Text style={localStyles.modalTitleText}>
@@ -1147,7 +1255,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
             </View>
 
             <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={true}>
-              
+
               {/* Context Row */}
               <View style={localStyles.contextRow}>
                 <View style={[localStyles.contextAvatar, { backgroundColor: '#A58BA0' }]}>
@@ -1182,7 +1290,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
                   maxLength={2500}
                   style={localStyles.modalContentInput}
                 />
-                
+
                 {/* Embedded Microphone inside TextArea */}
                 <TouchableOpacity onPress={startVoiceRecording} style={localStyles.micIconBtn}>
                   <Text style={{ fontSize: 16 }}>🎙️</Text>
@@ -1431,96 +1539,113 @@ const localStyles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
   },
-  
+
   // Topic Catalog Styles
   heroCard: {
-    backgroundColor: '#6F405F',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: '#4A2B40',
+    borderRadius: 24,
+    padding: 24,
     marginHorizontal: 12,
     marginTop: 12,
     marginBottom: 6,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#2D1D15',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 4,
   },
   heroBannerPill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     marginBottom: 8,
   },
   heroBannerPillText: {
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontSize: 11.5,
+    fontWeight: '800',
     color: '#FFD1E8',
   },
   heroTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: 14,
+    letterSpacing: -0.3,
   },
   heroCreateBtn: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#D96C3D',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#E67E22',
+    shadowColor: '#E67E22',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   heroCreateBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 12.5,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   catalogScroll: {
     paddingBottom: 24,
   },
   categoryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: '#F1ECEF',
-    padding: 16,
+    borderColor: 'rgba(111, 64, 95, 0.12)',
+    padding: 20,
     marginHorizontal: 12,
     marginVertical: 8,
+    shadowColor: '#2D1D15',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   categoryTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   categoryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '900',
     color: '#2D1D15',
+    letterSpacing: -0.2,
   },
   categoryCountBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
   },
   categoryCountText: {
-    fontSize: 10.5,
-    fontWeight: 'bold',
+    fontSize: 11,
+    fontWeight: '800',
   },
   subtopicsWrapper: {
     flexDirection: 'row',
@@ -1530,33 +1655,33 @@ const localStyles = StyleSheet.create({
   subtopicChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1.5,
   },
   subtopicIcon: {
     fontSize: 13,
     marginRight: 4,
   },
   subtopicText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#2D1D15',
   },
   subtopicCountBadge: {
     marginLeft: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
   },
   subtopicCountText: {
-    fontSize: 9.5,
-    fontWeight: 'bold',
+    fontSize: 10,
+    fontWeight: '800',
   },
   subtopicTrendingFire: {
-    fontSize: 9,
-    marginLeft: 2,
+    fontSize: 9.5,
+    marginLeft: 3,
   },
   backToCatalogBtn: {
     paddingHorizontal: 12,

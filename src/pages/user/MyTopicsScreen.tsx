@@ -145,57 +145,165 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
         onRequestClose={() => setCreateModalOpen(false)}
       >
         <SafeAreaView style={appStyles.centerModalOverlay}>
-          <View style={[appStyles.reportModalCard, { width: '90%', maxHeight: '80%' }]}>
-            <Text style={appStyles.reportModalTitle}>➕ Create Custom Topic</Text>
-            <Text style={appStyles.reportModalSubtitle}>Create a new topic handle for anonymous discussions.</Text>
+          <View style={{
+            width: '90%',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 24,
+            padding: 22,
+            borderWidth: 1,
+            borderColor: '#EFEAE8',
+            shadowColor: '#2D1D15',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.15,
+            shadowRadius: 20,
+            elevation: 10,
+          }}>
+            {/* Header with Title and Close button */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#6F405F' }}>➕ Create Custom Topic</Text>
+              <TouchableOpacity onPress={() => setCreateModalOpen(false)} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#8C8385' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 12.5, color: '#8C8385', lineHeight: 17, marginBottom: 16 }}>
+              Create a new topic handle for anonymous discussions.
+            </Text>
 
             {/* Emoji selector preset grid */}
-            <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', marginTop: 12, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#6F405F', marginBottom: 8 }}>
               Choose Topic Emoji Logo * ({selectedEmoji})
             </Text>
-            <View style={{ height: 110, backgroundColor: '#FAF6F8', borderRadius: 14, borderWidth: 1, borderColor: '#EFEAE8', padding: 8 }}>
-              <ScrollView contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }} showsVerticalScrollIndicator={true}>
-                {EMOJI_PRESETS.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    onPress={() => setSelectedEmoji(emoji)}
-                    style={[
-                      { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-                      selectedEmoji === emoji && { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#6F405F' }
-                    ]}
-                  >
-                    <Text style={{ fontSize: 18 }}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
+            <View style={{
+              height: 120,
+              backgroundColor: '#FAF6F8',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: '#EFEAE8',
+              padding: 10
+            }}>
+              <ScrollView 
+                contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', paddingVertical: 4 }} 
+                showsVerticalScrollIndicator={true}
+              >
+                {EMOJI_PRESETS.map((emoji) => {
+                  const isSelected = selectedEmoji === emoji;
+                  return (
+                    <TouchableOpacity
+                      key={emoji}
+                      onPress={() => setSelectedEmoji(emoji)}
+                      style={[
+                        {
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'transparent',
+                        },
+                        isSelected && {
+                          backgroundColor: '#FFFFFF',
+                          borderWidth: 1.5,
+                          borderColor: '#6F405F',
+                          shadowColor: '#6F405F',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 6,
+                          elevation: 3,
+                        }
+                      ]}
+                    >
+                      <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
             {/* Topic Channel Name Input */}
-            <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', marginTop: 14, marginBottom: 6 }}>
+            <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#6F405F', marginTop: 16, marginBottom: 8 }}>
               Topic Channel Name *
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#6F405F' }}>{selectedEmoji} #</Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderWidth: 1.5,
+              borderColor: '#CEC7C5',
+              borderRadius: 14,
+              backgroundColor: '#FAF8F8',
+              overflow: 'hidden',
+              height: 50
+            }}>
+              <View style={{
+                paddingHorizontal: 12,
+                height: '100%',
+                justifyContent: 'center',
+                backgroundColor: '#FAF6F8',
+                borderRightWidth: 1.5,
+                borderRightColor: '#CEC7C5',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                <Text style={{ fontSize: 18 }}>{selectedEmoji}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#6F405F' }}>#</Text>
+              </View>
               <TextInput
-                placeholder="e.g. WELLNESS, FINANCE, TRAVEL"
+                placeholder="e.g. WELLNESS"
                 placeholderTextColor={COLORS.zorba}
                 value={newTopicInput}
                 onChangeText={(val) => setNewTopicInput(val.toUpperCase().replace(/\s+/g, '_'))}
-                style={[appStyles.input, { flex: 1, textTransform: 'uppercase', fontWeight: 'bold', marginTop: 0 }]}
+                style={{
+                  flex: 1,
+                  height: '100%',
+                  paddingHorizontal: 14,
+                  fontSize: 14,
+                  color: '#2D1D15',
+                  textTransform: 'uppercase',
+                  fontWeight: 'bold',
+                }}
                 maxLength={20}
                 autoCapitalize="characters"
+                multiline={false}
               />
             </View>
-            <Text style={{ fontSize: 10.5, color: '#8C8385', marginTop: 6, lineHeight: 14 }}>
+            <Text style={{ fontSize: 10.5, color: '#9C9395', marginTop: 8, lineHeight: 14 }}>
               User created topics start at the bottom catalog card until they receive posts & activity!
             </Text>
 
-            <View style={[appStyles.reportActionRow, { marginTop: 18 }]}>
-              <TouchableOpacity onPress={() => setCreateModalOpen(false)} style={appStyles.reportCancelButton}>
-                <Text style={appStyles.reportCancelText}>Cancel</Text>
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', marginTop: 22, gap: 10 }}>
+              <TouchableOpacity 
+                onPress={() => setCreateModalOpen(false)} 
+                style={{
+                  flex: 1,
+                  height: 46,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1.5,
+                  borderColor: '#CEC7C5',
+                  backgroundColor: '#FFFFFF',
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#8C8385' }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleCreateTopic} style={[appStyles.reportSubmitButton, { backgroundColor: COLORS.deepPlum }]}>
-                <Text style={appStyles.reportSubmitText}>Create Topic</Text>
+              <TouchableOpacity 
+                onPress={handleCreateTopic} 
+                style={{
+                  flex: 2,
+                  height: 46,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#6F405F',
+                  shadowColor: '#6F405F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>Create Topic</Text>
               </TouchableOpacity>
             </View>
           </View>

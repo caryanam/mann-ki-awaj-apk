@@ -26,7 +26,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
 
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState('All');
-  
+
   // Handlers for comments & flags (identical to HomeFeedScreen)
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [commentText, setCommentText] = useState('');
@@ -87,7 +87,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
       if (createdAtMs > stat.lastPostMs) {
         stat.lastPostMs = createdAtMs;
         const diffMins = Math.floor((Date.now() - createdAtMs) / 60000);
-        stat.lastPostTime = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins}m ago` : diffMins < 1440 ? `${Math.floor(diffMins/60)}h ago` : `${Math.floor(diffMins/1440)}d ago`;
+        stat.lastPostTime = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins}m ago` : diffMins < 1440 ? `${Math.floor(diffMins / 60)}h ago` : `${Math.floor(diffMins / 1440)}d ago`;
       }
     });
 
@@ -185,7 +185,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
       {/* Categorized grid list */}
       <View style={localStyles.categoriesList}>
         {TOPIC_CATEGORIES.map((cat: any) => {
-          const catMatchesQuery = !query.trim() || 
+          const catMatchesQuery = !query.trim() ||
             cat.name.toLowerCase().includes(query.toLowerCase()) ||
             t(cat.categoryKey, cat.name).toLowerCase().includes(query.toLowerCase()) ||
             cat.subtopics.some((s: any) => s.label.toLowerCase().includes(query.toLowerCase()) || s.id.toLowerCase().includes(query.toLowerCase()));
@@ -212,7 +212,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
                 {cat.subtopics.map((sub: any) => {
                   const isSelected = activeTopic.toUpperCase() === sub.id.toUpperCase();
                   const isQueryMatch = query.trim() && (
-                    sub.label.toLowerCase().includes(query.toLowerCase()) || 
+                    sub.label.toLowerCase().includes(query.toLowerCase()) ||
                     sub.id.toLowerCase().includes(query.toLowerCase())
                   );
                   const stat = topicStats[sub.id] || { count: 0, isTrending: false };
@@ -493,7 +493,7 @@ const localStyles = StyleSheet.create({
     color: COLORS.zorba,
     textAlign: 'center',
   },
-  
+
   // Explore Catalog Styles
   heroCard: {
     backgroundColor: '#6F405F',

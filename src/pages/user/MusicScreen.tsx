@@ -11,13 +11,16 @@ import {
   Image,
   ScrollView,
   Modal,
+  RefreshControl,
+  Platform,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
+import { pick, types, errorCodes, isErrorWithCode } from '@react-native-documents/picker';
 import { useLanguage } from '../../context/LanguageContext';
 import { useMoodMusic } from '../../context/MoodMusicContext';
 import { apiMusicService } from '../../services/apiMusicService';
 import { COLORS } from '../../styles/theme';
+import { localStorage } from '../../services/localStorage';
 
 const LANGUAGES = ['EN', 'HI', 'BN', 'MR', 'TE', 'TA', 'GU', 'UR', 'KN', 'OR', 'ML', 'PA', 'AS', 'SAT', 'KS', 'MNI', 'DOI', 'BHO'];
 const MOODS = ['ROMANTIC', 'CALM', 'ENERGETIC', 'CONFUSED', 'MELANCHOLY', 'FOCUS'];
@@ -44,10 +47,11 @@ export function MusicScreen() {
   const [featuredTracks, setFeaturedTracks] = useState<any[]>([]);
   const [loadingPublic, setLoadingPublic] = useState(false);
 
-  // My Tracks Tab states
   const [myTracks, setMyTracks] = useState<any[]>([]);
   const [loadingMyTracks, setLoadingMyTracks] = useState(false);
   const [myStatusFilter, setMyStatusFilter] = useState('');
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Upload/Edit Modal states
   const [modalVisible, setModalVisible] = useState(false);
@@ -68,8 +72,9 @@ export function MusicScreen() {
   const [submittingForm, setSubmittingForm] = useState(false);
 
   // Fetch Public Music
-  const fetchPublicMusic = async () => {
-    setLoadingPublic(true);
+  const fetchPublicMusic = async (isSilent = false) => {
+    if (!isSilent) setLoadingPublic(true);
+    setErrorText(null);
     try {
       const filters = {
         query: searchQuery.trim(),
@@ -87,14 +92,16 @@ export function MusicScreen() {
       setFeaturedTracks(featRes?.content || []);
     } catch (e: any) {
       console.warn('[MusicScreen] Fetch public failed:', e.message);
+      setErrorText(e.message || 'Failed to load music');
     } finally {
-      setLoadingPublic(false);
+      if (!isSilent) setLoadingPublic(false);
     }
   };
 
   // Fetch My Music
-  const fetchMyMusic = async () => {
-    setLoadingMyTracks(true);
+  const fetchMyMusic = async (isSilent = false) => {
+    if (!isSilent) setLoadingMyTracks(true);
+    setErrorText(null);
     try {
       const res = await apiMusicService.getMyTracks({
         status: myStatusFilter,
@@ -104,9 +111,20 @@ export function MusicScreen() {
       setMyTracks(res?.content || []);
     } catch (e: any) {
       console.warn('[MusicScreen] Fetch my tracks failed:', e.message);
+      setErrorText(e.message || 'Failed to load uploads');
     } finally {
-      setLoadingMyTracks(false);
+      if (!isSilent) setLoadingMyTracks(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (viewTab === 'browse') {
+      await fetchPublicMusic(true);
+    } else {
+      await fetchMyMusic(true);
+    }
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -123,8 +141,13 @@ export function MusicScreen() {
       if (res.didCancel) return;
       if (res.assets && res.assets[0]) {
         const file = res.assets[0];
+        // Validate file size (max 2MB)
+        if (file.fileSize && file.fileSize > 2 * 1024 * 1024) {
+          Alert.alert('Image Too Large', 'Please select a cover image under 2MB.');
+          return;
+        }
         setFormCover({
-          uri: file.uri,
+          uri: Platform.OS === 'android' ? file.uri : (file.uri ? file.uri.replace('file://', '') : ''),
           name: file.fileName || 'cover.jpg',
           type: file.type || 'image/jpeg',
         });
@@ -135,16 +158,24 @@ export function MusicScreen() {
   // Use DocumentPicker to select real audio file
   const handleSelectAudio = async () => {
     try {
-      const res = await DocumentPicker.pickSingle({
-        type: [DocumentPicker.types.audio],
+      const [res] = await pick({
+        type: [types.audio],
+        allowMultiSelection: false,
       });
-      setFormAudio({
-        uri: res.uri,
-        name: res.name || 'track.mp3',
-        type: res.type || 'audio/mpeg',
-      });
+      if (res) {
+        // Validate file size (max 10MB)
+        if (res.size && res.size > 10 * 1024 * 1024) {
+          Alert.alert('File Too Large', 'Please select an audio file under 10MB.');
+          return;
+        }
+        setFormAudio({
+          uri: Platform.OS === 'android' ? res.uri : (res.uri ? res.uri.replace('file://', '') : ''),
+          name: res.name || 'track.mp3',
+          type: res.type || 'audio/mpeg',
+        });
+      }
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
+      if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
         // User cancelled
       } else {
         Alert.alert('Error', 'Failed to pick audio file: ' + err);
@@ -207,7 +238,11 @@ export function MusicScreen() {
       setModalVisible(false);
       fetchMyMusic();
     } catch (e: any) {
-      Alert.alert('Request Failed', e.message || 'Error processing track');
+      if (e.message && e.message.includes('413')) {
+        Alert.alert('Upload Failed', 'The selected file is too large for the server. Please ensure the audio file is under 10MB and the cover image is under 2MB.');
+      } else {
+        Alert.alert('Request Failed', e.message || 'Error processing track');
+      }
     } finally {
       setSubmittingForm(false);
     }
@@ -264,7 +299,21 @@ export function MusicScreen() {
     setModalVisible(true);
   };
 
-  const defaultCover = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80';
+  const defaultCover = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+
+  const getAuthorizedCoverUrl = (item: any) => {
+    const rawUrl = item.coverUrl || item.privateCoverUrl || item.publicCoverUrl;
+    if (!rawUrl) return defaultCover;
+    if (rawUrl.startsWith('http') && !rawUrl.includes('/api/')) {
+      return rawUrl;
+    }
+    const token = localStorage.getItem('auth_token');
+    if (token && (rawUrl.includes('/api/admin/') || rawUrl.includes('/api/music/') || rawUrl.includes('/api/'))) {
+      const separator = rawUrl.includes('?') ? '&' : '?';
+      return `${rawUrl}${separator}token=${token}&access_token=${token}`;
+    }
+    return rawUrl;
+  };
 
   return (
     <View style={styles.container}>
@@ -295,6 +344,9 @@ export function MusicScreen() {
         <FlatList
           data={publicTracks}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[COLORS.deepPlum]} />
+          }
           ListHeaderComponent={
             <View style={{ gap: 16, padding: 12 }}>
               {/* Filters Toolbar */}
@@ -384,7 +436,7 @@ export function MusicScreen() {
             const isPlaying = isActive && music.isPlaying;
             return (
               <View style={styles.trackRow}>
-                <Image source={{ uri: item.coverUrl || defaultCover }} style={styles.coverArt} />
+                <Image source={{ uri: getAuthorizedCoverUrl(item) }} style={styles.coverArt} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.trackTitle}>{item.title}</Text>
                   <Text style={styles.trackArtist}>{item.artist || 'Unknown artist'}</Text>
@@ -406,7 +458,9 @@ export function MusicScreen() {
           ListEmptyComponent={
             !loadingPublic ? (
               <View style={styles.emptyView}>
-                <Text style={{ color: '#8C8385' }}>No tracks found.</Text>
+                <Text style={{ color: '#8C8385', textAlign: 'center', paddingHorizontal: 20 }}>
+                  {errorText ? `Error: ${errorText}` : 'No tracks found.'}
+                </Text>
               </View>
             ) : null
           }
@@ -416,6 +470,9 @@ export function MusicScreen() {
         <FlatList
           data={myTracks}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[COLORS.deepPlum]} />
+          }
           ListHeaderComponent={
             <View style={{ gap: 12, padding: 12 }}>
               <TouchableOpacity onPress={openUploadModal} style={styles.uploadButton}>
@@ -455,7 +512,7 @@ export function MusicScreen() {
             return (
               <View style={styles.myTrackCard}>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Image source={{ uri: item.publicCoverUrl || item.privateCoverUrl || defaultCover }} style={styles.coverArt} />
+                  <Image source={{ uri: getAuthorizedCoverUrl(item) }} style={styles.coverArt} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackTitle}>{item.title}</Text>
                     <Text style={styles.trackArtist}>{item.artist || 'Your Track'}</Text>
@@ -507,7 +564,9 @@ export function MusicScreen() {
           ListEmptyComponent={
             !loadingMyTracks ? (
               <View style={styles.emptyView}>
-                <Text style={{ color: '#8C8385' }}>No uploads found. Share your voice today!</Text>
+                <Text style={{ color: '#8C8385', textAlign: 'center', paddingHorizontal: 20 }}>
+                  {errorText ? `Error: ${errorText}` : 'No uploads found. Share your voice today!'}
+                </Text>
               </View>
             ) : null
           }
@@ -676,17 +735,24 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     backgroundColor: '#FAF5F7',
-    borderRadius: 10,
-    padding: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F0ECE9',
+    padding: 4,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 10,
   },
   activeTabButton: {
     backgroundColor: '#6F405F',
+    elevation: 3,
+    shadowColor: '#6F405F',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   tabButtonText: {
     fontSize: 12,
@@ -793,52 +859,58 @@ const styles = StyleSheet.create({
   trackRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 12,
     marginHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 10,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
+    elevation: 3,
     shadowColor: '#2D1D15',
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    gap: 10,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    gap: 12,
   },
   coverArt: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+    width: 52,
+    height: 52,
+    borderRadius: 10,
   },
   trackTitle: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '800',
     color: '#2D1D15',
   },
   trackArtist: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#8C8385',
     fontWeight: '600',
   },
   genreBadge: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '700',
     color: '#6F405F',
-    backgroundColor: '#FAF5F7',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: 'rgba(111, 64, 95, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   playButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#6F405F',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#6F405F',
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
   playButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#FFFFFF',
   },
 
@@ -849,34 +921,41 @@ const styles = StyleSheet.create({
 
   uploadButton: {
     backgroundColor: '#6F405F',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: '#6F405F',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   uploadButtonText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   myTrackCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8DDD5',
     padding: 12,
     marginHorizontal: 12,
     marginBottom: 10,
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#2D1D15',
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    gap: 10,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    gap: 12,
   },
   statusPill: {
     fontSize: 9,
     fontWeight: '800',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
   rejectionText: {
     fontSize: 10,
@@ -890,19 +969,19 @@ const styles = StyleSheet.create({
     gap: 8,
     borderTopWidth: 1,
     borderTopColor: '#F5F2F0',
-    paddingTop: 8,
+    paddingTop: 10,
   },
   opBtn: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E1DCDB',
     backgroundColor: '#FCFAF9',
   },
   opBtnText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#2D1D15',
   },
 

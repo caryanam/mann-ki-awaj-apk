@@ -56,6 +56,8 @@ import {
   SettingsIcon,
   ShieldIcon,
   TagIcon,
+  InboxIcon,
+  MusicIcon,
 } from './src/components/common/Icons';
 
 import { AuthScreen } from './src/pages/auth/AuthScreen';
@@ -85,7 +87,7 @@ import { AdminMusicScreen } from './src/pages/admin/AdminMusicScreen';
 
 // ── MAIN CORE ENTRY ──
 function MainDashboard() {
-  const { startNewConversation } = useChat();
+  const { startNewConversation, registerMoodCallback, broadcastMoodUpdate } = useChat();
   const { currentUser, logout } = useAuth();
   const { t } = useLanguage();
 
@@ -173,6 +175,16 @@ function MainDashboard() {
     fetchMoodStats();
   }, []);
 
+  useEffect(() => {
+    if (typeof registerMoodCallback === 'function') {
+      const unsubscribe = registerMoodCallback(() => {
+        console.log('[App] Refreshing mood stats from socket event');
+        fetchMoodStats();
+      });
+      return unsubscribe;
+    }
+  }, [registerMoodCallback]);
+
   const handleToggleMoodModal = () => {
     const currentActive = checkActiveMood();
     if (!moodModalVisible) {
@@ -200,6 +212,9 @@ function MainDashboard() {
       if (res?.data?.moodCounts) {
         setMoodVotes(res.data.moodCounts);
         setTotalMoodVotes(res.data.totalVotes || 0);
+      }
+      if (typeof broadcastMoodUpdate === 'function') {
+        broadcastMoodUpdate();
       }
     } catch (err) {
       console.warn('[App] Failed to update mood:', err);
@@ -269,7 +284,8 @@ function MainDashboard() {
 
               {/* User Profile Context Capsule with Three-Dot Edit Trigger */}
               <TouchableOpacity
-                activeOpacity={0.7}
+                activeOpacity={activeTab === 'Admin' ? 1.0 : 0.7}
+                disabled={activeTab === 'Admin'}
                 onPress={() => {
                   Alert.alert(
                     t('profileOptions', 'Profile Options'),
@@ -315,16 +331,15 @@ function MainDashboard() {
                     {currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : 'AD'}
                   </Text>
                 </View>
-                <View style={{ marginLeft: 8, flex: 1 }}>
+                <View style={{ marginLeft: 8, flex: 1, justifyContent: 'center' }}>
                   <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#6F405F' }} numberOfLines={1}>
                     {currentUser?.username || 'Admin User'}
                   </Text>
-                  <Text style={{ fontSize: 8.5, color: '#8C8385', fontWeight: '600' }}>
-                    {currentUser?.role === 'ROLE_ADMIN' || currentUser?.role === 'ADMIN' ? 'System Administrator' : 'Verified Member'}
-                  </Text>
                 </View>
                 {/* Three Dot Icon */}
-                <Text style={{ fontSize: 16, color: '#8C8385', fontWeight: 'bold', paddingHorizontal: 4, transform: [{ translateY: -1 }] }}>⋮</Text>
+                {activeTab !== 'Admin' && (
+                  <Text style={{ fontSize: 16, color: '#8C8385', fontWeight: 'bold', paddingHorizontal: 4, transform: [{ translateY: -1 }] }}>⋮</Text>
+                )}
               </TouchableOpacity>
             </View>
 
@@ -420,7 +435,7 @@ function MainDashboard() {
                       {activeAdminTab === 'Enquiries' && (
                         <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
                       )}
-                      <Text style={{ fontSize: 18, width: 18, textAlign: 'center', color: activeAdminTab === 'Enquiries' ? COLORS.error : '#5C5254' }}>📥</Text>
+                      <InboxIcon color={activeAdminTab === 'Enquiries' ? COLORS.error : '#5C5254'} size={18} />
                       <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Enquiries' ? 'bold' : '600', color: activeAdminTab === 'Enquiries' ? COLORS.error : '#5C5254' }}>
                         User Enquiries
                       </Text>
@@ -462,7 +477,7 @@ function MainDashboard() {
                       {activeAdminTab === 'Music' && (
                         <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
                       )}
-                      <Text style={{ fontSize: 18, width: 18, textAlign: 'center', color: activeAdminTab === 'Music' ? COLORS.error : '#5C5254' }}>🎵</Text>
+                      <MusicIcon color={activeAdminTab === 'Music' ? COLORS.error : '#5C5254'} size={18} />
                       <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Music' ? 'bold' : '600', color: activeAdminTab === 'Music' ? COLORS.error : '#5C5254' }}>
                         Music Management
                       </Text>
@@ -1304,7 +1319,7 @@ function MainDashboard() {
               onPress={() => { setActiveTab('Music'); setChatTarget(null); }}
             >
               <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <Text style={{ fontSize: 18, color: activeTab === 'Music' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)' }}>🎵</Text>
+                <MusicIcon color={activeTab === 'Music' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
               </View>
               <Text style={[styles.tabButtonText, { color: activeTab === 'Music' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Music' ? 'bold' : '600' }]}>{t('music', 'Music')}</Text>
               {activeTab === 'Music' && (
