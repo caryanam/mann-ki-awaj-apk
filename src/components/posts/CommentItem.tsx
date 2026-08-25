@@ -21,12 +21,19 @@ export function CommentItem({
   postAuthorUsername?: string;
   onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void;
 }) {
-  const { replyToComment, updateComment, deleteComment, reactToComment } = usePosts() as any;
+  const { replyToComment, updateComment, deleteComment, reactToComment, blockedUsers } = usePosts() as any;
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(c.content);
   const [showEmojis, setShowEmojis] = useState(false);
+
+  const isBlocked = blockedUsers?.some(
+    (u: string) => u.replace(/^@/, '').toLowerCase().trim() === (c.username || '').replace(/^@/, '').toLowerCase().trim()
+  );
+  if (isBlocked) {
+    return null;
+  }
 
   const handleSendReply = () => {
     if (!replyText.trim()) { return; }
@@ -180,6 +187,10 @@ export function CommentItem({
         <View style={{ paddingLeft: 36, marginTop: 8, borderLeftWidth: 1.5, borderLeftColor: '#E1DCDB', marginLeft: 14 }}>
           {c.replies.map((r: any) => {
             const isReplyOwner = r.username === currentUser?.username;
+            const isReplyBlocked = blockedUsers?.some(
+              (u: string) => u.replace(/^@/, '').toLowerCase().trim() === (r.username || '').replace(/^@/, '').toLowerCase().trim()
+            );
+            if (isReplyBlocked) return null;
             return (
               <View key={r.id} style={{ marginBottom: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

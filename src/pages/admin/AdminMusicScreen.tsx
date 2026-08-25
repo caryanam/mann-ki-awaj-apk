@@ -303,20 +303,21 @@ export function AdminMusicScreen() {
     setRejectModalVisible(true);
   };
 
-  const defaultCover = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+  const defaultCover = require('../../assets/music-cover.jpg');
 
-  const getAuthorizedCoverUrl = (item: any) => {
+  const getAuthorizedCover = (item: any) => {
     const rawUrl = item.coverUrl || item.privateCoverUrl || item.publicCoverUrl;
     if (!rawUrl) return defaultCover;
+    if (typeof rawUrl === 'number') return rawUrl;
     if (rawUrl.startsWith('http') && !rawUrl.includes('/api/')) {
-      return rawUrl;
+      return { uri: rawUrl };
     }
     const token = localStorage.getItem('auth_token');
     if (token && (rawUrl.includes('/api/admin/') || rawUrl.includes('/api/music/') || rawUrl.includes('/api/'))) {
       const separator = rawUrl.includes('?') ? '&' : '?';
-      return `${rawUrl}${separator}token=${token}&access_token=${token}`;
+      return { uri: `${rawUrl}${separator}token=${token}&access_token=${token}` };
     }
-    return rawUrl;
+    return { uri: rawUrl };
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -559,7 +560,7 @@ export function AdminMusicScreen() {
               <View style={styles.trackCard}>
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <View style={styles.coverArtContainer}>
-                    <Image source={{ uri: getAuthorizedCoverUrl(item) }} style={styles.coverArt} />
+                    <Image source={getAuthorizedCover(item)} style={styles.coverArt} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>

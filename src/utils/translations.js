@@ -140,6 +140,7 @@ export const UI_DICTIONARY = {
     exploreCategories: 'Explore Topic Channels',
     topics: 'topics',
     clearFilter: 'Clear Filter',
+    blockedUsers: 'Blocked Users',
   },
   Hindi: {
     home: 'फीड',
@@ -260,6 +261,7 @@ export const UI_DICTIONARY = {
     exploreCategories: 'विषय चैनल खोजें',
     topics: 'विषय',
     clearFilter: 'फ़िल्टर साफ़ करें',
+    blockedUsers: 'अवरुद्ध उपयोगकर्ता',
   },
   Marathi: {
     home: 'फीड',

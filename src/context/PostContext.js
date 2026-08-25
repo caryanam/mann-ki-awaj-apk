@@ -71,6 +71,22 @@ export function PostProvider({ children }) {
         } else {
           setReports([]);
         }
+
+        if (currentUser) {
+          try {
+            const list = await apiService.getBlockedUsers();
+            const formatted = [];
+            (list || []).forEach(u => {
+              const raw = u.replace(/^@/, '');
+              formatted.push(raw, `@${raw}`);
+            });
+            setBlockedUsers([...new Set(formatted)]);
+          } catch (e) {
+            console.warn('[PostContext] Failed to sync blocked users:', e.message);
+          }
+        } else {
+          setBlockedUsers([]);
+        }
       } catch (err) {
         console.warn('[PostContext] Failed to load initial post data:', err.message);
         try {
@@ -122,18 +138,47 @@ export function PostProvider({ children }) {
     );
   };
 
-  const blockUser = (username) => {
-    setBlockedUsers(prev => [...prev, username]);
+  const blockUser = async (username) => {
+    if (!username) return;
+    const clean = username.replace(/^@/, '').trim();
+    if (!clean) return;
+    const cleanHandle = `@${clean}`;
+
+    setBlockedUsers(prev => [...new Set([...prev, clean, cleanHandle])]);
     setPosts(prev =>
-      prev.map(p => (p.username === username ? { ...p, hidden: true } : p))
+      prev.map(p => {
+        const u = p.username || '';
+        const uClean = u.replace(/^@/, '').toLowerCase().trim();
+        return uClean === clean.toLowerCase() ? { ...p, hidden: true } : p;
+      })
     );
+
+    try {
+      await apiService.blockUser(clean);
+    } catch (err) {
+      console.warn('[PostContext] blockUser API failed:', err.message);
+    }
   };
 
-  const unblockUser = (username) => {
-    setBlockedUsers(prev => prev.filter(u => u !== username));
+  const unblockUser = async (username) => {
+    if (!username) return;
+    const clean = username.replace(/^@/, '').trim();
+    const cleanLower = clean.toLowerCase();
+
+    setBlockedUsers(prev => prev.filter(u => u.replace(/^@/, '').toLowerCase().trim() !== cleanLower));
     setPosts(prev =>
-      prev.map(p => (p.username === username ? { ...p, hidden: false } : p))
+      prev.map(p => {
+        const u = p.username || '';
+        const uClean = u.replace(/^@/, '').toLowerCase().trim();
+        return uClean === cleanLower ? { ...p, hidden: false } : p;
+      })
     );
+
+    try {
+      await apiService.unblockUser(clean);
+    } catch (err) {
+      console.warn('[PostContext] unblockUser API failed:', err.message);
+    }
   };
 
   const toggleSavePost = async (postId) => {

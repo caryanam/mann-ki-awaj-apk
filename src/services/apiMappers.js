@@ -180,7 +180,7 @@ export function mapComment(comment) {
     avatarConfig: comment.authorAvatar || comment.avatarConfig || null,
     avatarColor: comment.avatarColor || '#3F7772',
     reactions: comment.reactions || { relate: comment.likeCount || 0 },
-    userReaction: comment.userReaction || (comment.isLikedByCurrentUser ? 'relate' : null),
+    userReaction: comment.userReaction || ((comment.likedByCurrentUser || comment.isLikedByCurrentUser) ? 'relate' : null),
     replies: (comment.replies || []).map(mapComment),
   };
 }

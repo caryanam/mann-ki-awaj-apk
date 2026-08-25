@@ -272,7 +272,13 @@ export function MoodMusicWidget() {
   if (!music.currentTrack) return null;
 
   const currentSeconds = music.duration * (music.progress / 100);
-  const defaultCover = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+  const defaultCover = require('../../assets/music-cover.jpg');
+
+  const getCoverSource = (cover: any) => {
+    if (typeof cover === 'number') return cover;
+    if (cover && typeof cover === 'string' && cover.startsWith('http')) return { uri: cover };
+    return defaultCover;
+  };
 
   const seekForward = () => {
     if (!music.duration) return;
@@ -310,7 +316,7 @@ export function MoodMusicWidget() {
           {/* Album disc & Song details */}
           <View style={styles.trackCard}>
             <Animated.Image
-              source={{ uri: music.currentTrack.coverUrl || defaultCover }}
+              source={getCoverSource(music.currentTrack.coverUrl)}
               style={[
                 styles.trackDisc,
                 {
@@ -392,7 +398,7 @@ export function MoodMusicWidget() {
         >
           {/* Cover Art Rotating Disc */}
           <Animated.Image
-            source={{ uri: music.currentTrack.coverUrl || defaultCover }}
+            source={getCoverSource(music.currentTrack.coverUrl)}
             style={[
               styles.bubbleDisc,
               {

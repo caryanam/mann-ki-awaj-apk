@@ -299,20 +299,21 @@ export function MusicScreen() {
     setModalVisible(true);
   };
 
-  const defaultCover = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80';
+  const defaultCover = require('../../assets/music-cover.jpg');
 
-  const getAuthorizedCoverUrl = (item: any) => {
+  const getAuthorizedCover = (item: any) => {
     const rawUrl = item.coverUrl || item.privateCoverUrl || item.publicCoverUrl;
     if (!rawUrl) return defaultCover;
+    if (typeof rawUrl === 'number') return rawUrl;
     if (rawUrl.startsWith('http') && !rawUrl.includes('/api/')) {
-      return rawUrl;
+      return { uri: rawUrl };
     }
     const token = localStorage.getItem('auth_token');
     if (token && (rawUrl.includes('/api/admin/') || rawUrl.includes('/api/music/') || rawUrl.includes('/api/'))) {
       const separator = rawUrl.includes('?') ? '&' : '?';
-      return `${rawUrl}${separator}token=${token}&access_token=${token}`;
+      return { uri: `${rawUrl}${separator}token=${token}&access_token=${token}` };
     }
-    return rawUrl;
+    return { uri: rawUrl };
   };
 
   return (
@@ -414,7 +415,7 @@ export function MusicScreen() {
                           onPress={() => isActive ? music.togglePlay() : music.playTrack(item, featuredTracks)}
                           style={styles.featuredCard}
                         >
-                          <Image source={{ uri: item.coverUrl || defaultCover }} style={styles.featuredCover} />
+                          <Image source={item.coverUrl ? (typeof item.coverUrl === 'number' ? item.coverUrl : { uri: item.coverUrl }) : defaultCover} style={styles.featuredCover} />
                           <View style={styles.featuredPlayOverlay}>
                             <Text style={styles.playOverlayText}>{isPlaying ? '⏸' : '▶'}</Text>
                           </View>
@@ -436,7 +437,7 @@ export function MusicScreen() {
             const isPlaying = isActive && music.isPlaying;
             return (
               <View style={styles.trackRow}>
-                <Image source={{ uri: getAuthorizedCoverUrl(item) }} style={styles.coverArt} />
+                <Image source={getAuthorizedCover(item)} style={styles.coverArt} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.trackTitle}>{item.title}</Text>
                   <Text style={styles.trackArtist}>{item.artist || 'Unknown artist'}</Text>
@@ -512,7 +513,7 @@ export function MusicScreen() {
             return (
               <View style={styles.myTrackCard}>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <Image source={{ uri: getAuthorizedCoverUrl(item) }} style={styles.coverArt} />
+                  <Image source={getAuthorizedCover(item)} style={styles.coverArt} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackTitle}>{item.title}</Text>
                     <Text style={styles.trackArtist}>{item.artist || 'Your Track'}</Text>

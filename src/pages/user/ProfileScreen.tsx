@@ -1794,43 +1794,55 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                       </View>
 
                       {/* 4. Blocked Users List */}
-                      <View style={{ borderTopWidth: 1, borderTopColor: '#F0ECEB', paddingTop: 16, marginBottom: 20 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                          <BlockIcon />
-                          <Text style={{ fontSize: 14, fontWeight: '700', color: '#2D1D15' }}>Blocked Accounts ({blockedUsers.length})</Text>
-                        </View>
-                        <Text style={{ fontSize: 11.5, color: '#8C8385', lineHeight: 16, marginBottom: 10 }}>
-                          These members cannot comment on your posts or send you messages. Their posts are hidden from your feed.
-                        </Text>
+                      {(() => {
+                        const uniqueBlocked = Array.from(
+                          new Set(
+                            (blockedUsers || []).map((u: string) => {
+                              const clean = u.replace(/^@/, '').trim();
+                              return clean ? `@${clean}` : '';
+                            }).filter(Boolean)
+                          )
+                        ) as string[];
+                        return (
+                          <View style={{ borderTopWidth: 1, borderTopColor: '#F0ECEB', paddingTop: 16, marginBottom: 20 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                              <BlockIcon />
+                              <Text style={{ fontSize: 14, fontWeight: '700', color: '#2D1D15' }}>Blocked Accounts ({uniqueBlocked.length})</Text>
+                            </View>
+                            <Text style={{ fontSize: 11.5, color: '#8C8385', lineHeight: 16, marginBottom: 10 }}>
+                              These members cannot comment on your posts or send you messages. Their posts are hidden from your feed.
+                            </Text>
 
-                        <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F0ECEB', borderRadius: 12, padding: 12 }}>
-                          {blockedUsers.length === 0 ? (
-                            <Text style={{ fontSize: 12.5, color: '#8C8385', textAlign: 'center', paddingVertical: 10 }}>No blocked users yet.</Text>
-                          ) : (
-                            blockedUsers.map((username: string) => (
-                              <View key={username} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F5ECEB' }}>
-                                <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#2D1D15' }}>{username}</Text>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    unblockUser(username);
-                                    Alert.alert('Success', `Unblocked ${username} successfully.`);
-                                  }}
-                                  style={{
-                                    backgroundColor: '#FAF8F8',
-                                    borderWidth: 1,
-                                    borderColor: '#E6E1E0',
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 12,
-                                  }}
-                                >
-                                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#6F405F' }}>Unblock</Text>
-                                </TouchableOpacity>
-                              </View>
-                            ))
-                          )}
-                        </View>
-                      </View>
+                            <View style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F0ECEB', borderRadius: 12, padding: 12 }}>
+                              {uniqueBlocked.length === 0 ? (
+                                <Text style={{ fontSize: 12.5, color: '#8C8385', textAlign: 'center', paddingVertical: 10 }}>No blocked users yet.</Text>
+                              ) : (
+                                uniqueBlocked.map((username: string) => (
+                                  <View key={username} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F5ECEB' }}>
+                                    <Text style={{ fontSize: 13.5, fontWeight: '700', color: '#2D1D15' }}>{username}</Text>
+                                    <TouchableOpacity
+                                      onPress={() => {
+                                        unblockUser(username);
+                                        Alert.alert('Success', `Unblocked ${username} successfully.`);
+                                      }}
+                                      style={{
+                                        backgroundColor: '#FAF8F8',
+                                        borderWidth: 1,
+                                        borderColor: '#E6E1E0',
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 6,
+                                        borderRadius: 12,
+                                      }}
+                                    >
+                                      <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#6F405F' }}>Unblock</Text>
+                                    </TouchableOpacity>
+                                  </View>
+                                ))
+                              )}
+                            </View>
+                          </View>
+                        );
+                      })()}
 
                       {/* Save Button */}
                       <TouchableOpacity

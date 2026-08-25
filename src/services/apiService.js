@@ -981,4 +981,33 @@ export const apiService = {
       }
     }
   },
+
+  // POST /api/users/block/{username}
+  async blockUser(username) {
+    const clean = (username || '').replace(/^@/, '').trim();
+    if (!clean) return null;
+    return await request(`/api/users/block/${encodeURIComponent(clean)}`, {
+      method: 'POST',
+    });
+  },
+
+  // DELETE /api/users/unblock/{username}
+  async unblockUser(username) {
+    const clean = (username || '').replace(/^@/, '').trim();
+    if (!clean) return null;
+    return await request(`/api/users/unblock/${encodeURIComponent(clean)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // GET /api/users/blocked
+  async getBlockedUsers() {
+    try {
+      const response = await request('/api/users/blocked');
+      return response?.data || response || [];
+    } catch (err) {
+      console.warn('[apiService] getBlockedUsers failed:', err.message);
+      return [];
+    }
+  },
 };
