@@ -9,6 +9,7 @@ import {
   Dimensions,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { useMoodMusic } from '../../context/MoodMusicContext';
 import { COLORS } from '../../styles/theme';
@@ -206,11 +207,26 @@ const SkipForwardIcon = ({ color = '#6F405F', size = 12 }) => (
 
 export function MoodMusicWidget() {
   const music = useMoodMusic() as any;
+  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Anim position values
   const pan = useRef(new Animated.ValueXY({
-    x: SCREEN_WIDTH - 160,
-    y: SCREEN_HEIGHT - 180
+    x: SCREEN_WIDTH - 180,
+    y: SCREEN_HEIGHT - 220
   })).current;
 
   // Disc Spin Animation
@@ -269,7 +285,7 @@ export function MoodMusicWidget() {
     })
   ).current;
 
-  if (!music.currentTrack) return null;
+  if (keyboardVisible || !music.currentTrack) return null;
 
   const currentSeconds = music.duration * (music.progress / 100);
   const defaultCover = require('../../assets/music-cover.jpg');
@@ -297,8 +313,12 @@ export function MoodMusicWidget() {
   };
 
   return (
-    <View
-      style={styles.widgetContainer}
+    <Animated.View
+      style={[
+        styles.widgetContainer,
+        pan.getLayout(),
+      ]}
+      {...panResponder.panHandlers}
     >
       {music.isWidgetOpen ? (
         /* ── 1. EXPANDED MUSIC PLAYER WIDGET ── */
@@ -426,15 +446,13 @@ export function MoodMusicWidget() {
           </TouchableOpacity>
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   widgetContainer: {
     position: 'absolute',
-    bottom: 75,
-    right: 16,
     zIndex: 9999,
   },
   bubble: {

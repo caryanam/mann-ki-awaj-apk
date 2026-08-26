@@ -1267,8 +1267,16 @@ export function AuthScreen() {
           <Text style={[styles.headerText, { fontWeight: 'bold' }]}>Aawaj Man Ki</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <TouchableOpacity onPress={() => goToView('login')} style={styles.headerLoginShortcut}>
-            <Text style={styles.headerLoginShortcutText}>Login</Text>
+          <TouchableOpacity
+            onPress={() => goToView('login')}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 100,
+              backgroundColor: 'rgba(111, 64, 95, 0.1)',
+            }}
+          >
+            <Text style={{ color: '#6F405F', fontWeight: 'bold', fontSize: 12.5 }}>Login</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => goToView('register')} style={{ backgroundColor: '#D89C7A', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
             <Text style={{ color: '#0B0A16', fontSize: 12, fontWeight: 'bold' }}>Get Started</Text>
@@ -1288,12 +1296,12 @@ export function AuthScreen() {
               </Text>
             </View>
           </View>
-          
+
           <Text style={landingStyles.heroTitle}>
             Where Thoughts{'\n'}Matter More{'\n'}
             <Text style={{ color: '#F2B08D' }}>Than Identity.</Text>
           </Text>
-          
+
           <Text style={landingStyles.heroSub}>
             Share your thoughts, opinions, experiences and emotions freely without revealing who you are. AI-powered moderation keeps conversations respectful, meaningful and safe.
           </Text>
@@ -1438,7 +1446,7 @@ export function AuthScreen() {
           <View style={{ position: 'relative', paddingLeft: 12 }}>
             {/* Vertical Line */}
             <View style={{ position: 'absolute', left: 24, top: 20, bottom: 20, width: 2, backgroundColor: '#EBE6E4', borderStyle: 'dashed' }} />
-            
+
             {[
               { num: '1', title: 'Register Privately', body: 'Your phone number and name are kept strictly private.' },
               { num: '2', title: 'Write Anonymously', body: 'Publish thoughts with initials-based colored avatars.' },
@@ -1464,7 +1472,7 @@ export function AuthScreen() {
           <Text style={landingStyles.sectionTitleSub}>
             A space for every Indian who wants to share, listen and connect.
           </Text>
-          
+
           {/* Badge capsules grid */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
             {['Students', 'Young Professionals', 'Creators', 'Thinkers', 'Dreamers', 'Parents', 'Professionals', 'Anyone'].map((tag) => (
@@ -1480,11 +1488,11 @@ export function AuthScreen() {
           <Text style={{ fontSize: 12.5, fontWeight: 'bold', color: '#6F405F', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 }}>
             A Sanctuary For All
           </Text>
-          
+
           <View style={landingStyles.testimonialCard}>
             {/* Watermark Quote */}
             <Text style={{ position: 'absolute', top: -14, left: 16, fontSize: 80, color: 'rgba(255, 255, 255, 0.08)', fontWeight: 'bold' }}>“</Text>
-            
+
             <Text style={landingStyles.testimonialQuote}>
               "Finally a platform where my thoughts matter more than my job title or social standing."
             </Text>

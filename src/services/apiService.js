@@ -260,6 +260,39 @@ export const apiService = {
     return res?.success ? mapComment(res.data || res) : null;
   },
 
+  /**
+   * @param {string} topicId
+   * @param {number} [page=0]
+   * @param {number} [size=50]
+   */
+  async getCommentsByTopicId(topicId, page = 0, size = 50) {
+    try {
+      const res = await request(`/api/topics/${topicId}/comments?page=${page}&size=${size}`);
+      const rawContent = res?.data?.content || res?.content || res?.data || [];
+      if (Array.isArray(rawContent)) {
+        return rawContent.map(mapComment);
+      }
+      return [];
+    } catch (err) {
+      console.warn(`[apiService] Failed to fetch comments for topic ${topicId}:`, err.message);
+      return [];
+    }
+  },
+
+  /**
+   * @param {string} topicId
+   * @param {string} content
+   * @param {string} [originalLanguage='EN']
+   * @param {string|null} [imageUrl=null]
+   */
+  async createTopicComment(topicId, content, originalLanguage = 'EN', imageUrl = null) {
+    const res = await request(`/api/topics/${topicId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, originalLanguage, imageUrl }),
+    });
+    return res?.success ? mapComment(res.data || res) : null;
+  },
+
   // Admin / Moderation Operations
   async getReports() {
     try {

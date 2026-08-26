@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Image, Modal, StyleSheet } from 'react-native';
 import { InitialAvatar } from '../common/InitialAvatar';
 import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -14,12 +14,20 @@ export function CommentItem({
   currentUser,
   postAuthorUsername,
   onNavigateToChat: _onNavigateToChat,
+  onReplySubmit,
+  onEditSubmit,
+  onDelete,
+  onReact,
 }: {
   comment: any;
   postId: any;
   currentUser: any;
   postAuthorUsername?: string;
   onNavigateToChat?: (username: any, authorId: any, initials: any, color: any) => void;
+  onReplySubmit?: (commentId: string, text: string) => void;
+  onEditSubmit?: (commentId: string, text: string) => void;
+  onDelete?: (commentId: string) => void;
+  onReact?: (commentId: string, reactionKey: string) => void;
 }) {
   const { replyToComment, updateComment, deleteComment, reactToComment, blockedUsers } = usePosts() as any;
   const [showReplyInput, setShowReplyInput] = useState(false);
@@ -27,6 +35,7 @@ export function CommentItem({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(c.content);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
 
   const isBlocked = blockedUsers?.some(
     (u: string) => u.replace(/^@/, '').toLowerCase().trim() === (c.username || '').replace(/^@/, '').toLowerCase().trim()
@@ -37,14 +46,22 @@ export function CommentItem({
 
   const handleSendReply = () => {
     if (!replyText.trim()) { return; }
-    replyToComment(c.id, postId, replyText.trim(), currentUser);
+    if (onReplySubmit) {
+      onReplySubmit(c.id, replyText.trim());
+    } else {
+      replyToComment(c.id, postId, replyText.trim(), currentUser);
+    }
     setReplyText('');
     setShowReplyInput(false);
   };
 
   const handleSaveEdit = () => {
     if (!editText.trim()) { return; }
-    updateComment(c.id, postId, editText.trim());
+    if (onEditSubmit) {
+      onEditSubmit(c.id, editText.trim());
+    } else {
+      updateComment(c.id, postId, editText.trim());
+    }
     setIsEditing(false);
   };
 
@@ -105,7 +122,7 @@ export function CommentItem({
               <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
                 <Text style={{ fontSize: 11, color: COLORS.warning, fontWeight: 'bold' }}>Edit</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => deleteComment(c.id, postId)}>
+              <TouchableOpacity onPress={() => onDelete ? onDelete(c.id) : deleteComment(c.id, postId)}>
                 <Text style={{ fontSize: 11, color: COLORS.error, fontWeight: 'bold' }}>Delete</Text>
               </TouchableOpacity>
             </>
@@ -120,7 +137,7 @@ export function CommentItem({
             const reactionMap: Record<string, string> = { '😀': 'happy', '❤️': 'relate', '👍': 'wellSaid', '🔥': 'helpful', '🤝': 'stayStrong', '💯': 'madeMeThink' };
             const reactionKey = reactionMap[emoji];
             return (
-              <TouchableOpacity key={emoji} onPress={() => { reactToComment(c.id, postId, reactionKey); setShowEmojis(false); }}>
+              <TouchableOpacity key={emoji} onPress={() => { onReact ? onReact(c.id, reactionKey) : reactToComment(c.id, postId, reactionKey); setShowEmojis(false); }}>
                 <Text style={{ fontSize: 16 }}>{emoji}</Text>
               </TouchableOpacity>
             );
@@ -153,6 +170,44 @@ export function CommentItem({
                     🌐 {showOriginal ? 'Show Original' : 'Show Translation'}
                   </Text>
                 </TouchableOpacity>
+              )}
+              {c.imageUrl && (
+                <>
+                  <TouchableOpacity onPress={() => setImageModalVisible(true)}>
+                    <Image
+                      source={{ uri: c.imageUrl }}
+                      style={{
+                        width: '100%',
+                        height: 200,
+                        borderRadius: 10,
+                        marginTop: 8,
+                        backgroundColor: '#FAF8F8',
+                      }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+
+                  <Modal
+                    visible={imageModalVisible}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setImageModalVisible(false)}
+                  >
+                    <View style={localStyles.modalBackground}>
+                      <TouchableOpacity
+                        style={localStyles.modalCloseBtn}
+                        onPress={() => setImageModalVisible(false)}
+                      >
+                        <Text style={localStyles.modalCloseText}>✕</Text>
+                      </TouchableOpacity>
+                      <Image
+                        source={{ uri: c.imageUrl }}
+                        style={localStyles.modalFullImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  </Modal>
+                </>
               )}
             </>
           )}
@@ -199,7 +254,7 @@ export function CommentItem({
                     <Text style={[styles.commentUser, { marginLeft: 6, fontSize: 11.5, color: '#8C8385' }]}>{r.username}</Text>
                   </View>
                   {isReplyOwner && (
-                    <TouchableOpacity onPress={() => deleteComment(r.id, postId)}>
+                    <TouchableOpacity onPress={() => onDelete ? onDelete(r.id) : deleteComment(r.id, postId)}>
                       <Text style={{ fontSize: 10, color: COLORS.error }}>✕</Text>
                     </TouchableOpacity>
                   )}
@@ -219,7 +274,11 @@ export function CommentItem({
           <CommentComposer
             postId={postId}
             onSubmit={async (text) => {
-              await replyToComment(c.id, postId, text, currentUser);
+              if (onReplySubmit) {
+                onReplySubmit(c.id, text);
+              } else {
+                await replyToComment(c.id, postId, text, currentUser);
+              }
               setShowReplyInput(false);
             }}
             placeholder={`Reply to ${c.username}...`}
@@ -230,3 +289,33 @@ export function CommentItem({
     </View>
   );
 }
+
+const localStyles = StyleSheet.create({
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 99,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  modalFullImage: {
+    width: '100%',
+    height: '80%',
+  },
+});

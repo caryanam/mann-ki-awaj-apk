@@ -1,14 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Modal, SafeAreaView, TextInput, Alert, StyleSheet, RefreshControl } from 'react-native';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
 import { CommentComposer } from '../../components/posts/CommentComposer';
+import { TopicDiscussionScreen } from './TopicDiscussionScreen';
 import { usePosts } from '../../context/PostContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles as appStyles } from '../../styles/appStyles';
 import { TOPIC_CATEGORIES } from '../../utils/topicUtils';
+import { apiService } from '../../services/apiService';
 const CATEGORY_EMOJIS: Record<string, string> = {
   Heart: '❤️',
   Feather: '✍️',
@@ -26,6 +28,8 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
 
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState('All');
+  const [selectedTopic, setSelectedTopic] = useState('All');
+  const [databaseTopics, setDatabaseTopics] = useState<any[]>([]);
 
   // Handlers for comments & flags (identical to HomeFeedScreen)
   const [selectedPost, setSelectedPost] = useState<any>(null);
@@ -36,10 +40,24 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
   const [reportNotes, setReportNotes] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  const loadDatabaseTopics = async () => {
+    try {
+      const topics = await apiService.getTopics();
+      setDatabaseTopics(topics || []);
+    } catch (err) {
+      console.warn('Failed to load database topics:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadDatabaseTopics();
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       await refreshPosts();
+      await loadDatabaseTopics();
     } catch (err) {
       console.warn('[ExploreScreen] refresh error:', err);
     } finally {
@@ -67,43 +85,24 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
     return presets;
   }, []);
 
-  // Dynamic calculation of topic statistics from real posts
+  // Dynamic calculation of topic statistics from real database topics
   const topicStats = useMemo(() => {
     const statsMap: { [key: string]: any } = {};
     TOPIC_PRESETS.forEach(tItem => {
-      statsMap[tItem.name] = { count: 0, lastPostTime: 'No posts yet', lastPostMs: 0, isNew: false, isTrending: false };
+      statsMap[tItem.name] = { count: 0, isTrending: false };
     });
 
-    posts.forEach((p: any) => {
-      if (!p) return;
-      const topicName = (p.topic || 'GENERAL').toUpperCase().trim();
-      if (!statsMap[topicName]) {
-        statsMap[topicName] = { count: 0, lastPostTime: 'No posts yet', lastPostMs: 0, isNew: false, isTrending: false };
-      }
-      const stat = statsMap[topicName];
-      stat.count += 1;
-
-      const createdAtMs = p.createdAt ? new Date(p.createdAt).getTime() : 0;
-      if (createdAtMs > stat.lastPostMs) {
-        stat.lastPostMs = createdAtMs;
-        const diffMins = Math.floor((Date.now() - createdAtMs) / 60000);
-        stat.lastPostTime = diffMins < 1 ? 'Just now' : diffMins < 60 ? `${diffMins}m ago` : diffMins < 1440 ? `${Math.floor(diffMins / 60)}h ago` : `${Math.floor(diffMins / 1440)}d ago`;
-      }
-    });
-
-    // Apply trending/new badges
-    Object.values(statsMap).forEach((stat: any) => {
-      if (stat.count > 0) {
-        stat.isNew = true;
-        stat.isTrending = stat.count >= 2;
-      } else {
-        stat.isNew = false;
-        stat.isTrending = false;
-      }
+    databaseTopics.forEach((topic: any) => {
+      const key = String(topic.name || '').toUpperCase();
+      const count = Number(topic.commentCount || 0);
+      statsMap[key] = {
+        count,
+        isTrending: count > 0,
+      };
     });
 
     return statsMap;
-  }, [posts, TOPIC_PRESETS]);
+  }, [databaseTopics, TOPIC_PRESETS]);
 
   // Filter posts based on activeTopic and query
   const displayPosts = useMemo(() => {
@@ -221,7 +220,7 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
                     <TouchableOpacity
                       key={sub.id}
                       onPress={() => {
-                        setActiveTopic(isSelected ? 'All' : sub.id);
+                        setSelectedTopic(sub.id);
                       }}
                       style={[
                         localStyles.subtopicChip,
@@ -265,6 +264,18 @@ export function ExploreScreen({ onNavigateToChat }: { onNavigateToChat: any }) {
       </View>
     </View>
   );
+
+  if (selectedTopic !== 'All') {
+    return (
+      <TopicDiscussionScreen
+        topicName={selectedTopic}
+        currentUser={currentUser}
+        onBack={() => setSelectedTopic('All')}
+        onNavigateToChat={onNavigateToChat}
+        topicDbId={databaseTopics.find(tObj => (tObj.name || '').toUpperCase().trim() === selectedTopic.toUpperCase().trim())?.id}
+      />
+    );
+  }
 
   return (
     <View style={localStyles.container}>

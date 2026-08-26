@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, FlatList, Modal, SafeAreaView
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
 import { CommentComposer } from '../../components/posts/CommentComposer';
+import { TopicDiscussionScreen } from './TopicDiscussionScreen';
 import { usePosts } from '../../context/PostContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -111,10 +112,20 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
   const [reportReason, setReportReason] = useState('Spam');
   const [refreshing, setRefreshing] = useState(false);
 
+  const loadDatabaseTopics = async () => {
+    try {
+      const topics = await apiService.getTopics();
+      setDatabaseTopics(topics || []);
+    } catch (err) {
+      console.warn('Failed to load database topics:', err);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       await refreshPosts();
+      await loadDatabaseTopics();
     } catch (err) {
       console.warn('[HomeFeedScreen] refresh error:', err);
     } finally {
@@ -139,6 +150,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
   const [newCustomTopicName, setNewCustomTopicName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('💡');
   const [customTopicsTrigger, setCustomTopicsTrigger] = useState(0);
+  const [databaseTopics, setDatabaseTopics] = useState<any[]>([]);
 
   // Web Create Post parity modal states
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -367,6 +379,7 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
         await localStorage.init();
         await syncTopicsWithDatabase();
         setCustomTopicsTrigger(prev => prev + 1);
+        await loadDatabaseTopics();
       } catch (e) {
         console.warn('[HomeFeedScreen] sync err:', e);
       }
@@ -392,13 +405,19 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
 
   // Topic statistics map
   const topicStatsMap = useMemo(() => {
-    const statsList = computeTopicStats(posts);
     const map: any = {};
-    statsList.forEach((st: any) => {
-      map[st.name] = st;
+    databaseTopics.forEach((topic: any) => {
+      const key = String(topic.name || '').toUpperCase();
+      const count = Number(topic.commentCount || 0);
+      map[key] = {
+        name: key,
+        count,
+        isTrending: count > 0,
+        lastPostMs: topic.createdAt ? new Date(topic.createdAt).getTime() : 0,
+      };
     });
     return map;
-  }, [posts]);
+  }, [databaseTopics]);
 
   // Dynamically resolve category color for detail card
   const selectedTopicCategoryColor = useMemo(() => {
@@ -816,150 +835,13 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
           </ScrollView>
         </View>
       ) : (
-        // ── CHANNEL FEED VIEW ──
-        <View style={{ flex: 1 }}>
-          {/* Header Row */}
-          <View style={localStyles.channelNavBar}>
-            <TouchableOpacity onPress={() => setSelectedTopic('All')} style={localStyles.backToCatalogBtn}>
-              <Text style={localStyles.backToCatalogText}>← Back to Home</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Topic Detail Header Banner Card */}
-          <View style={[localStyles.topicDetailCard, { backgroundColor: selectedTopicCategoryColor }]}>
-            <View style={localStyles.topicDetailLeft}>
-              {/* Circle Avatar with Initial */}
-              <View style={[localStyles.topicDetailAvatar, { backgroundColor: 'rgba(255, 255, 255, 0.18)' }]}>
-                <Text style={localStyles.topicDetailAvatarText}>
-                  {(() => {
-                    const clean = selectedTopic.replace(/^#/, '');
-                    const parts = clean.split(/[\s_-]+/);
-                    if (parts.length >= 2 && parts[1]) {
-                      return (parts[0][0] + parts[1][0]).toUpperCase().slice(0, 2);
-                    }
-                    return clean.slice(0, 1).toUpperCase() || '#';
-                  })()}
-                </Text>
-              </View>
-
-              <View style={localStyles.topicDetailMeta}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                  <Text style={localStyles.topicDetailTitle}>#{selectedTopic.toUpperCase()}</Text>
-                  <View style={localStyles.trendingBadge}>
-                    <Text style={localStyles.trendingBadgeText}>TRENDING TOPIC</Text>
-                  </View>
-                </View>
-
-                {/* Stats Row */}
-                <View style={localStyles.topicDetailStatsRow}>
-                  <Text style={localStyles.topicDetailStatsText}>
-                    🕒 Last post {lastPostTimeStr}
-                  </Text>
-                  <Text style={localStyles.topicDetailStatsText}>
-                    🔥 {filteredAndSortedPosts.length} Thoughts shared
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* "+ Add Your Thought" button */}
-            <TouchableOpacity
-              onPress={() => {
-                setCreateTitle('');
-                setCreateContent('');
-                setCreateImageUrl('');
-                setCreateModalVisible(true);
-              }}
-              style={localStyles.addThoughtBtn}
-            >
-              <Text style={localStyles.addThoughtBtnText}>+ Add Your Thought</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Tab Selection Row (Topic Posts) */}
-          <View style={localStyles.topicPostsTabBar}>
-            <Text style={localStyles.topicPostsTabActive}>Topic Posts ({filteredAndSortedPosts.length})</Text>
-          </View>
-
-          {/* Search Box inside Feed view */}
-          <View style={localStyles.searchBarContainer}>
-            <TextInput
-              placeholder={t('searchPlaceholderText', '🔍 Search thoughts, topics or authors...')}
-              placeholderTextColor={COLORS.zorba}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={localStyles.searchBarInput}
-            />
-            {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={localStyles.clearSearchBtn}>
-                <Text style={{ fontSize: 13, color: COLORS.zorba, fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Filter Tabs Bar */}
-          <View style={localStyles.filterTabsContainer}>
-            {['Latest', 'Most Helpful', 'Trending', 'My Topics'].map((tab) => {
-              const isSelected = activeTab === tab;
-              return (
-                <TouchableOpacity
-                  key={tab}
-                  onPress={() => setActiveTab(tab)}
-                  style={[
-                    localStyles.filterTabButton,
-                    isSelected && { backgroundColor: COLORS.deepPlum, borderColor: COLORS.deepPlum }
-                  ]}
-                >
-                  <Text style={[localStyles.filterTabText, isSelected && { color: '#FFF', fontWeight: 'bold' }]}>
-                    {tab === 'Latest' ? t('latest', 'Latest') :
-                      tab === 'Most Helpful' ? t('mostHelpful', 'Most Helpful') :
-                        tab === 'Trending' ? t('trending', 'Trending') : t('myTopics', 'My Topics')}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Feed list */}
-          <FlatList
-            data={filteredAndSortedPosts}
-            keyExtractor={item => item.id}
-            extraData={{ currentLanguage, translationCache }}
-            style={{ flex: 1 }}
-            contentContainerStyle={appStyles.feedScroll}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#6F405F']}
-                tintColor="#6F405F"
-              />
-            }
-            ListEmptyComponent={
-              <View style={localStyles.emptyContainer}>
-                <Text style={localStyles.emptyText}>
-                  {isUserMuted ? 'Account Restricted. Feed is currently unavailable.' : 'No thoughts found under this channel. Be the first to share a thought!'}
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => (
-              <PostCardItem
-                item={item}
-                currentUser={currentUser}
-                handlePostReact={handlePostReact}
-                onNavigateToChat={onNavigateToChat}
-                setActiveReportPost={setActiveReportPost}
-                setReportModalVisible={setReportModalVisible}
-                onOpenComments={async (selectedPostItem: any) => {
-                  setSelectedPost(selectedPostItem);
-                  setCommentModalVisible(true);
-                  const comments = await loadComments(selectedPostItem.id);
-                  setSelectedPost((prev: any) => prev ? { ...prev, comments } : null);
-                }}
-              />
-            )}
-          />
-        </View>
+        <TopicDiscussionScreen
+          topicName={selectedTopic}
+          currentUser={currentUser}
+          onBack={() => setSelectedTopic('All')}
+          onNavigateToChat={onNavigateToChat}
+          topicDbId={databaseTopics.find(tObj => (tObj.name || '').toUpperCase().trim() === selectedTopic.toUpperCase().trim())?.id}
+        />
       )}
 
       {/* Enhanced Custom Topic Modal */}
