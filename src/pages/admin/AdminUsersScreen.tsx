@@ -179,8 +179,23 @@ export function AdminUsersScreen() {
 
   return (
     <View style={[styles.feedContainer, { backgroundColor: '#FCFAF9' }]}>
+      {/* Clean Compact Header Overview Bar */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 8,
+        backgroundColor: '#FFFFFF',
+      }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: '#2D1D15' }}>
+          User Accounts
+        </Text>
+        <Text style={{ fontSize: 11.5, color: '#8C8385', fontWeight: '500', marginTop: 2 }}>
+          Manage user profiles, statuses, and safety warnings
+        </Text>
+      </View>
+
       {/* Search Header and Bar */}
-      <View style={{ paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F0ECEB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ paddingBottom: 14, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F0ECEB', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <TextInput
           placeholder="Search by handle or email..."
           placeholderTextColor="#9F9794"

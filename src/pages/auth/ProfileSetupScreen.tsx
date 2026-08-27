@@ -11,6 +11,7 @@ import {
   Modal,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -237,7 +238,8 @@ export function ProfileSetupScreen() {
   const selectedLangLabel = SUPPORTED_LANGUAGES.find(l => l.code === preferredLanguage)?.native || preferredLanguage;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F5F4', position: 'relative' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F5F4', paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, position: 'relative' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F5F4" translucent={true} />
       {/* Ambient background decoration blobs */}
       <View style={{ position: 'absolute', top: -100, left: -100, width: 300, height: 300, borderRadius: 150, backgroundColor: '#FAF1ED', opacity: 0.8, zIndex: 0 }} />
       <View style={{ position: 'absolute', bottom: -50, right: -100, width: 320, height: 320, borderRadius: 160, backgroundColor: '#F5ECF0', opacity: 0.9, zIndex: 0 }} />

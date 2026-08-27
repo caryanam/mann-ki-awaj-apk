@@ -42,6 +42,7 @@ const MOOD_OPTIONS = [
 import {
   HamburgerIcon,
   HomeIcon,
+  PlusIcon,
   BellIcon,
   StarIcon,
   ProfileIcon,
@@ -58,6 +59,8 @@ import {
   TagIcon,
   InboxIcon,
   MusicIcon,
+  CloseIcon,
+  ChevronRightIcon,
 } from './src/components/common/Icons';
 
 import { AuthScreen } from './src/pages/auth/AuthScreen';
@@ -233,447 +236,749 @@ function MainDashboard() {
 
   return (
     <View style={styles.container}>
-      {/* Slide-in Right Sidebar Drawer */}
+      {/* Native Mobile Left Slide-in Navigation Drawer */}
       <Modal
         animationType="fade"
         transparent={true}
         visible={sidebarVisible}
+        statusBarTranslucent={true}
         onRequestClose={() => setSidebarVisible(false)}
       >
-        <View style={{ flex: 1, flexDirection: 'row' }}>
-          {/* Backdrop Touch Target on Left */}
-          <TouchableOpacity
-            style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-            activeOpacity={1}
-            onPress={() => setSidebarVisible(false)}
-          />
-
+        <View style={{ flex: 1, flexDirection: 'row', backgroundColor: 'rgba(15, 8, 14, 0.65)' }}>
+          {/* Sidebar Drawer Panel on LEFT */}
           <View
             style={{
-              width: 275,
+              width: '82%',
+              maxWidth: 330,
               backgroundColor: '#FFFFFF',
-              paddingTop: Platform.OS === 'ios' ? 60 : 35,
-              paddingHorizontal: 16,
-              shadowColor: '#2D1D15',
-              shadowOffset: { width: -8, height: 0 },
-              shadowOpacity: 0.12,
-              shadowRadius: 16,
-              elevation: 24,
+              borderTopRightRadius: 28,
+              borderBottomRightRadius: 28,
+              shadowColor: '#000000',
+              shadowOffset: { width: 10, height: 0 },
+              shadowOpacity: 0.3,
+              shadowRadius: 25,
+              elevation: 30,
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              overflow: 'hidden',
             }}
           >
-            {/* Top Fixed Header */}
-            <View style={{ marginBottom: 18, paddingHorizontal: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image source={require('./src/assets/logo.png')} style={{ width: 36, height: 36, borderRadius: 10, marginRight: 10 }} />
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 17, fontWeight: '900', color: '#6F405F', letterSpacing: -0.3 }}>
-                      AwaajManki
+            {/* ── SEAMLESS TOP HERO HEADER BANNER ── */}
+            <View
+              style={{
+                backgroundColor: '#1E101D',
+                paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight || 0) + 18,
+                paddingHorizontal: 20,
+                paddingBottom: 22,
+                borderBottomRightRadius: 28,
+              }}
+            >
+              {/* Header Top Controls: App Branding & Close Button */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Image source={require('./src/assets/logo.png')} style={{ width: 36, height: 36, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.18)' }} />
+                  <View>
+                    <Text style={{ fontSize: 17, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 }}>
+                      Awaaj Man Ki
                     </Text>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: activeTab === 'Admin' ? COLORS.error : '#6F405F', marginLeft: 6 }} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: activeTab === 'Admin' ? '#F87171' : '#34D399' }} />
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: activeTab === 'Admin' ? '#FCA5A5' : '#6EE7B7', letterSpacing: 0.5 }}>
+                        {activeTab === 'Admin' ? 'ADMIN CONSOLE' : 'ANONYMOUS SPACE'}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={{ fontSize: 10, fontWeight: '600', color: '#8C8385', marginTop: 2 }}>
-                    {activeTab === 'Admin' ? 'Console Administration' : 'Secure Member Space'}
-                  </Text>
                 </View>
+
+                {/* Close Button */}
+                <TouchableOpacity
+                  onPress={() => setSidebarVisible(false)}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.18)',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <CloseIcon color="#FFFFFF" size={14} />
+                </TouchableOpacity>
               </View>
 
-              {/* User Profile Context Capsule with Three-Dot Edit Trigger */}
+              {/* User Profile Card Capsule */}
               <TouchableOpacity
-                activeOpacity={activeTab === 'Admin' ? 1.0 : 0.7}
+                activeOpacity={activeTab === 'Admin' ? 1.0 : 0.8}
                 disabled={activeTab === 'Admin'}
                 onPress={() => {
-                  Alert.alert(
-                    t('profileOptions', 'Profile Options'),
-                    `${t('loggedInAs', 'Logged in as')} ${currentUser?.username || '@anonymous'}`,
-                    [
-                      {
-                        text: t('viewProfile', 'View Profile'),
-                        onPress: () => {
-                          setActiveTab('Profile');
-                          setSidebarVisible(false);
-                        }
-                      },
-                      {
-                        text: t('logout', 'Log Out'),
-                        style: 'destructive',
-                        onPress: () => {
-                          logout();
-                          setSidebarVisible(false);
-                        }
-                      },
-                      {
-                        text: t('cancel', 'Cancel'),
-                        style: 'cancel'
-                      }
-                    ],
-                    { cancelable: true }
-                  );
+                  setActiveTab('Profile');
+                  setSidebarVisible(false);
                 }}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  marginTop: 16,
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  backgroundColor: '#FAF6F8',
-                  borderRadius: 12,
+                  padding: 10,
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  borderRadius: 16,
                   borderWidth: 1,
-                  borderColor: '#F1ECEF',
+                  borderColor: 'rgba(255, 255, 255, 0.12)',
                 }}
               >
-                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#6F405F', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#FFFFFF' }}>
-                    {currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : 'AD'}
+                {/* Avatar with Ring */}
+                <View style={{ width: 46, height: 46, borderRadius: 16, backgroundColor: '#6F405F', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#C46F76', position: 'relative' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: '#FFFFFF' }}>
+                    {currentUser?.username ? currentUser.username.replace('@', '').substring(0, 2).toUpperCase() : 'AN'}
+                  </Text>
+                  <View style={{
+                    width: 11,
+                    height: 11,
+                    borderRadius: 5.5,
+                    backgroundColor: '#10B981',
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    borderWidth: 2,
+                    borderColor: '#1E101D',
+                  }} />
+                </View>
+
+                {/* User Details */}
+                <View style={{ marginLeft: 12, flex: 1, justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '900', color: '#FFFFFF' }} numberOfLines={1}>
+                    {currentUser?.username || '@anonymous'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', marginTop: 1 }}>
+                    {activeTab === 'Admin' ? 'System Administrator' : 'Verified Identity Hidden'}
                   </Text>
                 </View>
-                <View style={{ marginLeft: 8, flex: 1, justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#6F405F' }} numberOfLines={1}>
-                    {currentUser?.username || 'Admin User'}
-                  </Text>
-                </View>
-                {/* Three Dot Icon */}
+
+                {/* Chevron */}
                 {activeTab !== 'Admin' && (
-                  <Text style={{ fontSize: 16, color: '#8C8385', fontWeight: 'bold', paddingHorizontal: 4, transform: [{ translateY: -1 }] }}>⋮</Text>
+                  <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255, 255, 255, 0.12)', justifyContent: 'center', alignItems: 'center' }}>
+                    <ChevronRightIcon color="#FFFFFF" size={12} />
+                  </View>
                 )}
               </TouchableOpacity>
             </View>
 
-            {/* Subtle Separator Line */}
-            <View style={{ height: 1, backgroundColor: '#F1ECEF', marginBottom: 16, marginHorizontal: 6 }} />
-
-            {/* Middle Scrolling Content */}
-            <ScrollView style={{ flex: 1, marginBottom: 8 }} showsVerticalScrollIndicator={false}>
+            {/* ── MIDDLE SCROLLING MENU LIST ── */}
+            <ScrollView
+              style={{ flex: 1, paddingVertical: 12 }}
+              showsVerticalScrollIndicator={false}
+            >
               {activeTab === 'Admin' ? (
                 // ── ADMIN CONSOLE SIDEBAR VIEW ──
                 <>
-                  {/* Section Card: ADMINISTRATION & OPERATIONS */}
-                  <View style={{
-                    backgroundColor: '#FAF6F8',
-                    borderRadius: 16,
-                    padding: 8,
-                    marginBottom: 14,
-                    borderWidth: 1,
-                    borderColor: '#F1ECEF'
-                  }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#8C8385', letterSpacing: 0.8, marginTop: 4, marginBottom: 10, paddingLeft: 8, textTransform: 'uppercase' }}>
-                      Administration & Ops
-                    </Text>
+                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.8, marginTop: 4, marginBottom: 8, paddingHorizontal: 20, textTransform: 'uppercase' }}>
+                    Administration & Ops
+                  </Text>
 
-                    {/* Dashboard */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Dashboard' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Dashboard'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'Dashboard' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <DocIcon color={activeAdminTab === 'Dashboard' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Dashboard' ? 'bold' : '600', color: activeAdminTab === 'Dashboard' ? COLORS.error : '#5C5254' }}>
+                  {/* Dashboard */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Dashboard' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Dashboard'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Dashboard' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Dashboard' ? '#6F405F' : '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+                        <DocIcon color={activeAdminTab === 'Dashboard' ? '#FFFFFF' : '#6F405F'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Dashboard' ? '900' : '600', color: activeAdminTab === 'Dashboard' ? '#6F405F' : '#2D1D15' }}>
                         Dashboard
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'Dashboard' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Reports Queue */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Reports' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Reports'); setSidebarVisible(false); }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                        {activeAdminTab === 'Reports' && (
-                          <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                        )}
-                        <FlagIcon color={activeAdminTab === 'Reports' ? COLORS.error : '#5C5254'} size={18} />
-                        <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Reports' ? 'bold' : '600', color: activeAdminTab === 'Reports' ? COLORS.error : '#5C5254' }}>
-                          Reports Queue
-                        </Text>
+                  {/* Reports Queue */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Reports' ? 'rgba(196, 111, 118, 0.12)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Reports'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Reports' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: COLORS.error, borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Reports' ? COLORS.error : '#FFF0F2', justifyContent: 'center', alignItems: 'center' }}>
+                        <FlagIcon color={activeAdminTab === 'Reports' ? '#FFFFFF' : '#C46F76'} size={17} />
                       </View>
-                      {adminBadgeCount > 0 && (
-                        <View style={{ backgroundColor: COLORS.error || '#EF4444', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1.5, minWidth: 18, alignItems: 'center', justifyContent: 'center' }}>
-                          <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#FFFFFF' }}>{adminBadgeCount}</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Reports' ? '900' : '600', color: activeAdminTab === 'Reports' ? COLORS.error : '#2D1D15' }}>
+                        Reports Queue
+                      </Text>
+                    </View>
+                    {adminBadgeCount > 0 ? (
+                      <View style={{ backgroundColor: COLORS.error || '#EF4444', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2, minWidth: 20, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#FFFFFF' }}>{adminBadgeCount}</Text>
+                      </View>
+                    ) : (
+                      <ChevronRightIcon color={activeAdminTab === 'Reports' ? COLORS.error : '#D1C7CD'} size={13} />
+                    )}
+                  </TouchableOpacity>
 
-                    {/* Content Review */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'ContentReview' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('ContentReview'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'ContentReview' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <EyeIcon color={activeAdminTab === 'ContentReview' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'ContentReview' ? 'bold' : '600', color: activeAdminTab === 'ContentReview' ? COLORS.error : '#5C5254' }}>
+                  {/* Content Review */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'ContentReview' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('ContentReview'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'ContentReview' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'ContentReview' ? '#6F405F' : '#F6F0FA', justifyContent: 'center', alignItems: 'center' }}>
+                        <EyeIcon color={activeAdminTab === 'ContentReview' ? '#FFFFFF' : '#7C3AED'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'ContentReview' ? '900' : '600', color: activeAdminTab === 'ContentReview' ? '#6F405F' : '#2D1D15' }}>
                         Content Review
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'ContentReview' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Blocked Footprints */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'BlockedFootprints' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('BlockedFootprints'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'BlockedFootprints' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <BanIcon color={activeAdminTab === 'BlockedFootprints' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'BlockedFootprints' ? 'bold' : '600', color: activeAdminTab === 'BlockedFootprints' ? COLORS.error : '#5C5254' }}>
+                  {/* Blocked Footprints */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'BlockedFootprints' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('BlockedFootprints'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'BlockedFootprints' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'BlockedFootprints' ? '#6F405F' : '#FEF2F2', justifyContent: 'center', alignItems: 'center' }}>
+                        <BanIcon color={activeAdminTab === 'BlockedFootprints' ? '#FFFFFF' : '#DC2626'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'BlockedFootprints' ? '900' : '600', color: activeAdminTab === 'BlockedFootprints' ? '#6F405F' : '#2D1D15' }}>
                         Blocked Footprints
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'BlockedFootprints' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* User Enquiries */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Enquiries' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Enquiries'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'Enquiries' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <InboxIcon color={activeAdminTab === 'Enquiries' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Enquiries' ? 'bold' : '600', color: activeAdminTab === 'Enquiries' ? COLORS.error : '#5C5254' }}>
+                  {/* User Enquiries */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Enquiries' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 10,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Enquiries'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Enquiries' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Enquiries' ? '#6F405F' : '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+                        <InboxIcon color={activeAdminTab === 'Enquiries' ? '#FFFFFF' : '#2563EB'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Enquiries' ? '900' : '600', color: activeAdminTab === 'Enquiries' ? '#6F405F' : '#2D1D15' }}>
                         User Enquiries
                       </Text>
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'Enquiries' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                  {/* Section Card: PLATFORM */}
-                  <View style={{
-                    backgroundColor: '#FAF6F8',
-                    borderRadius: 16,
-                    padding: 8,
-                    marginBottom: 14,
-                    borderWidth: 1,
-                    borderColor: '#F1ECEF'
-                  }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#8C8385', letterSpacing: 0.8, marginTop: 4, marginBottom: 8, paddingLeft: 8, textTransform: 'uppercase' }}>
-                      Platform
-                    </Text>
+                  {/* Section Divider */}
+                  <View style={{ height: 1, backgroundColor: '#F3EFF2', marginHorizontal: 20, marginVertical: 8 }} />
 
-                    {/* Users */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Users' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Users'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'Users' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <ProfileIcon color={activeAdminTab === 'Users' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Users' ? 'bold' : '600', color: activeAdminTab === 'Users' ? COLORS.error : '#5C5254' }}>
-                        Users
+                  {/* Section 2: PLATFORM */}
+                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.8, marginTop: 4, marginBottom: 8, paddingHorizontal: 20, textTransform: 'uppercase' }}>
+                    Platform & Media
+                  </Text>
+
+                  {/* Users */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Users' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Users'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Users' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Users' ? '#6F405F' : '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+                        <ProfileIcon color={activeAdminTab === 'Users' ? '#FFFFFF' : '#6F405F'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Users' ? '900' : '600', color: activeAdminTab === 'Users' ? '#6F405F' : '#2D1D15' }}>
+                        Users Management
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'Users' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Music Management */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Music' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Music'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'Music' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <MusicIcon color={activeAdminTab === 'Music' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Music' ? 'bold' : '600', color: activeAdminTab === 'Music' ? COLORS.error : '#5C5254' }}>
-                        Music Management
+                  {/* Music Management */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Music' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Music'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Music' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Music' ? '#6F405F' : '#ECFDF5', justifyContent: 'center', alignItems: 'center' }}>
+                        <MusicIcon color={activeAdminTab === 'Music' ? '#FFFFFF' : '#059669'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Music' ? '900' : '600', color: activeAdminTab === 'Music' ? '#6F405F' : '#2D1D15' }}>
+                        Music Library
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'Music' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Analytics */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeAdminTab === 'Analytics' ? 'rgba(196, 111, 118, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveAdminTab('Analytics'); setSidebarVisible(false); }}
-                    >
-                      {activeAdminTab === 'Analytics' && (
-                        <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3, backgroundColor: COLORS.error, borderRadius: 1.5 }} />
-                      )}
-                      <BarChartIcon color={activeAdminTab === 'Analytics' ? COLORS.error : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 13, fontWeight: activeAdminTab === 'Analytics' ? 'bold' : '600', color: activeAdminTab === 'Analytics' ? COLORS.error : '#5C5254' }}>
-                        Analytics
+                  {/* Analytics */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeAdminTab === 'Analytics' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 10,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveAdminTab('Analytics'); setSidebarVisible(false); }}
+                  >
+                    {activeAdminTab === 'Analytics' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeAdminTab === 'Analytics' ? '#6F405F' : '#FFFBEB', justifyContent: 'center', alignItems: 'center' }}>
+                        <BarChartIcon color={activeAdminTab === 'Analytics' ? '#FFFFFF' : '#D97706'} size={17} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeAdminTab === 'Analytics' ? '900' : '600', color: activeAdminTab === 'Analytics' ? '#6F405F' : '#2D1D15' }}>
+                        Platform Analytics
                       </Text>
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                    <ChevronRightIcon color={activeAdminTab === 'Analytics' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
                 </>
               ) : (
                 // ── USER SPACE SIDEBAR VIEW ──
                 <>
-                  {/* Section Card: PERSONAL SPACE */}
-                  <View style={{
-                    backgroundColor: '#FAF6F8',
-                    borderRadius: 16,
-                    padding: 8,
-                    marginBottom: 14,
-                    borderWidth: 1,
-                    borderColor: '#F1ECEF'
-                  }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#8C8385', letterSpacing: 0.8, marginTop: 4, marginBottom: 12, paddingLeft: 8, textTransform: 'uppercase' }}>
-                      {t('personalSpace', 'Personal Space')}
-                    </Text>
+                  {/* Section 1: DISCOVER & FEED */}
+                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.8, marginTop: 4, marginBottom: 8, paddingHorizontal: 20, textTransform: 'uppercase' }}>
+                    {t('personalSpace', 'Discover & Connect')}
+                  </Text>
 
-                    {/* Feed Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Feed' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveTab('Feed'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Feed' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <HomeIcon color={activeTab === 'Feed' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Feed' ? 'bold' : '600', color: activeTab === 'Feed' ? '#6F405F' : '#5C5254' }}>
-                        {t('home', 'Feed')}
+                  {/* Home Feed Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Feed' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Feed'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Feed' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Feed' ? '#6F405F' : '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+                        <HomeIcon color={activeTab === 'Feed' ? '#FFFFFF' : '#6F405F'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Feed' ? '900' : '600', color: activeTab === 'Feed' ? '#6F405F' : '#2D1D15' }}>
+                        {t('home', 'Home Feed')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Feed' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Explore Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Explore' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveTab('Explore'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Explore' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <ExploreIcon color={activeTab === 'Explore' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Explore' ? 'bold' : '600', color: activeTab === 'Explore' ? '#6F405F' : '#5C5254' }}>
-                        {t('explore', 'Explore')}
+                  {/* Explore Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Explore' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Explore'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Explore' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Explore' ? '#6F405F' : '#FFF6ED', justifyContent: 'center', alignItems: 'center' }}>
+                        <ExploreIcon color={activeTab === 'Explore' ? '#FFFFFF' : '#EA580C'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Explore' ? '900' : '600', color: activeTab === 'Explore' ? '#6F405F' : '#2D1D15' }}>
+                        {t('explore', 'Explore Topics')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Explore' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Notifications Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Notifications' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveTab('Notifications'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Notifications' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <BellIcon color={activeTab === 'Notifications' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Notifications' ? 'bold' : '600', color: activeTab === 'Notifications' ? '#6F405F' : '#5C5254' }}>
+                  {/* Notifications Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Notifications' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Notifications'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Notifications' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Notifications' ? '#6F405F' : '#F5F2FA', justifyContent: 'center', alignItems: 'center' }}>
+                        <BellIcon color={activeTab === 'Notifications' ? '#FFFFFF' : '#7C3AED'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Notifications' ? '900' : '600', color: activeTab === 'Notifications' ? '#6F405F' : '#2D1D15' }}>
                         {t('notif', 'Notifications')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Notifications' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Saved Posts Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Saved' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 6, position: 'relative' }}
-                      onPress={() => { setActiveTab('Saved'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Saved' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <StarIcon color={activeTab === 'Saved' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Saved' ? 'bold' : '600', color: activeTab === 'Saved' ? '#6F405F' : '#5C5254' }}>
+                  {/* Saved Posts Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Saved' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 6,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Saved'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Saved' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Saved' ? '#6F405F' : '#FFFBEB', justifyContent: 'center', alignItems: 'center' }}>
+                        <StarIcon color={activeTab === 'Saved' ? '#FFFFFF' : '#D97706'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Saved' ? '900' : '600', color: activeTab === 'Saved' ? '#6F405F' : '#2D1D15' }}>
                         {t('savedPosts', 'Saved Thoughts')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Saved' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Profile Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Profile' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveTab('Profile'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Profile' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <ProfileIcon color={activeTab === 'Profile' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Profile' ? 'bold' : '600', color: activeTab === 'Profile' ? '#6F405F' : '#5C5254' }}>
-                        {t('me', 'Me')}
+                  {/* Section Divider */}
+                  <View style={{ height: 1, backgroundColor: '#F3EFF2', marginHorizontal: 20, marginVertical: 8 }} />
+
+                  {/* Section 2: ACCOUNT & SUPPORT */}
+                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.8, marginTop: 4, marginBottom: 8, paddingHorizontal: 20, textTransform: 'uppercase' }}>
+                    Account & Support
+                  </Text>
+
+                  {/* Profile Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Profile' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Profile'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Profile' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Profile' ? '#6F405F' : '#F0FDF4', justifyContent: 'center', alignItems: 'center' }}>
+                        <ProfileIcon color={activeTab === 'Profile' ? '#FFFFFF' : '#16A34A'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Profile' ? '900' : '600', color: activeTab === 'Profile' ? '#6F405F' : '#2D1D15' }}>
+                        {t('me', 'My Profile')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Profile' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* My Topics Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'MyTopics' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveTab('MyTopics'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'MyTopics' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <TagIcon color={activeTab === 'MyTopics' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'MyTopics' ? 'bold' : '600', color: activeTab === 'MyTopics' ? '#6F405F' : '#5C5254' }}>
+                  {/* My Topics Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'MyTopics' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('MyTopics'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'MyTopics' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'MyTopics' ? '#6F405F' : '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+                        <TagIcon color={activeTab === 'MyTopics' ? '#FFFFFF' : '#6F405F'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'MyTopics' ? '900' : '600', color: activeTab === 'MyTopics' ? '#6F405F' : '#2D1D15' }}>
                         {t('myTopics', 'My Topics')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'MyTopics' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* My Reports Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'MyReports' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveTab('MyReports'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'MyReports' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <ShieldIcon color={activeTab === 'MyReports' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'MyReports' ? 'bold' : '600', color: activeTab === 'MyReports' ? '#6F405F' : '#5C5254' }}>
-                        {t('myContentReports', 'My Safety Reports')}
+                  {/* My Reports Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'MyReports' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('MyReports'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'MyReports' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'MyReports' ? '#6F405F' : '#FFF0F2', justifyContent: 'center', alignItems: 'center' }}>
+                        <ShieldIcon color={activeTab === 'MyReports' ? '#FFFFFF' : '#C46F76'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'MyReports' ? '900' : '600', color: activeTab === 'MyReports' ? '#6F405F' : '#2D1D15' }}>
+                        {t('myContentReports', 'Safety Reports')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'MyReports' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Settings Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Settings' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveTab('Settings'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Settings' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <SettingsIcon color={activeTab === 'Settings' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Settings' ? 'bold' : '600', color: activeTab === 'Settings' ? '#6F405F' : '#5C5254' }}>
+                  {/* Settings Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Settings' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 2,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Settings'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Settings' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Settings' ? '#6F405F' : '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+                        <SettingsIcon color={activeTab === 'Settings' ? '#FFFFFF' : '#64748B'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Settings' ? '900' : '600', color: activeTab === 'Settings' ? '#6F405F' : '#2D1D15' }}>
                         {t('settingsAndPreferences', 'Settings')}
                       </Text>
-                    </TouchableOpacity>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Settings' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
 
-                    {/* Help & Support Button */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: activeTab === 'Help' ? 'rgba(111, 64, 95, 0.08)' : 'transparent', marginBottom: 4, position: 'relative' }}
-                      onPress={() => { setActiveTab('Help'); setSidebarVisible(false); }}
-                    >
-                      {activeTab === 'Help' && (
-                        <View style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 3, backgroundColor: '#6F405F', borderRadius: 1.5 }} />
-                      )}
-                      <HelpIcon color={activeTab === 'Help' ? '#6F405F' : '#5C5254'} size={18} />
-                      <Text style={{ fontSize: 14, fontWeight: activeTab === 'Help' ? 'bold' : '600', color: activeTab === 'Help' ? '#6F405F' : '#5C5254' }}>
+                  {/* Help & Support Button */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: 48,
+                      paddingHorizontal: 16,
+                      marginHorizontal: 10,
+                      borderRadius: 14,
+                      backgroundColor: activeTab === 'Help' ? 'rgba(111, 64, 95, 0.1)' : 'transparent',
+                      marginBottom: 6,
+                      position: 'relative',
+                    }}
+                    onPress={() => { setActiveTab('Help'); setSidebarVisible(false); }}
+                  >
+                    {activeTab === 'Help' && (
+                      <View style={{ position: 'absolute', left: 0, top: 12, bottom: 12, width: 3.5, backgroundColor: '#6F405F', borderRadius: 2 }} />
+                    )}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: activeTab === 'Help' ? '#6F405F' : '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+                        <HelpIcon color={activeTab === 'Help' ? '#FFFFFF' : '#3B82F6'} size={18} />
+                      </View>
+                      <Text style={{ fontSize: 14.5, fontWeight: activeTab === 'Help' ? '900' : '600', color: activeTab === 'Help' ? '#6F405F' : '#2D1D15' }}>
                         {t('helpCenter', 'Help & Support')}
                       </Text>
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                    <ChevronRightIcon color={activeTab === 'Help' ? '#6F405F' : '#D1C7CD'} size={13} />
+                  </TouchableOpacity>
                 </>
               )}
             </ScrollView>
 
-            {/* Bottom Fixed Logout Row */}
-            <View style={{ borderTopWidth: 1, borderTopColor: '#F1ECEF', paddingVertical: 16 }}>
+            {/* ── BOTTOM FIXED DOCK ── */}
+            <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 34 : 20, borderTopWidth: 1, borderTopColor: '#F3EFF2', backgroundColor: '#FFFFFF' }}>
+              {/* Privacy & Safety Pill */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, gap: 6 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
+                <Text style={{ fontSize: 11.5, color: '#9E8E98', fontWeight: '700' }}>
+                  256-Bit Identity Shield • 100% Safe
+                </Text>
+              </View>
+
+              {/* Logout Button */}
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(196, 111, 118, 0.05)' }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: '#FFF2F4',
+                  borderWidth: 1.5,
+                  borderColor: '#FFE2E6',
+                }}
                 onPress={() => { logout(); setSidebarVisible(false); }}
+                activeOpacity={0.8}
               >
                 <LogoutIcon size={18} color="#C46F76" />
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#C46F76' }}>
+                <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#C46F76' }}>
                   {t('logout', 'Log Out')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Backdrop Touch Target on RIGHT */}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setSidebarVisible(false)}
+          />
         </View>
       </Modal>
 
       {/* Brand Header */}
-      <SafeAreaView style={{ backgroundColor: '#FFFFFF' }}>
+      <SafeAreaView style={{ backgroundColor: '#FFFFFF', paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0 }}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={true} />
         <View style={{
           backgroundColor: '#FFFFFF',
-          borderBottomWidth: 1.5,
-          borderBottomColor: '#F2EBEE',
+          borderBottomWidth: 1,
+          borderBottomColor: '#F0EAEE',
           shadowColor: '#6F405F',
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: 0.03,
-          shadowRadius: 8,
-          elevation: 3,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 6,
+          elevation: 2,
         }}>
           <View style={{
-            height: 52,
+            height: 54,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -682,29 +987,31 @@ function MainDashboard() {
             {activeTab === 'Admin' ? (
               <>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Image source={require('./src/assets/logo.png')} style={{ width: 24, height: 24, borderRadius: 6, marginRight: 8 }} />
+                  <Image source={require('./src/assets/logo.png')} style={{ width: 26, height: 26, borderRadius: 7, marginRight: 8 }} />
                   <Text style={styles.headerText}>AwaajManki</Text>
                   <Text style={[styles.headerDot, { color: COLORS.error }]}>•</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   {/* Notification Bell */}
                   <TouchableOpacity
                     onPress={() => setAdminAlertsModalVisible(true)}
-                    style={{ width: 34, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+                    style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FAF5F7', justifyContent: 'center', alignItems: 'center', position: 'relative', borderWidth: 1, borderColor: '#EFE5EB' }}
                   >
-                    <BellIcon color="#2D1D15" size={20} />
+                    <BellIcon color="#6F405F" size={19} />
                     {adminBadgeCount > 0 && (
                       <View style={{
                         position: 'absolute',
-                        top: 2,
-                        right: 2,
+                        top: -2,
+                        right: -2,
                         backgroundColor: '#EF4444',
-                        borderRadius: 8,
-                        minWidth: 16,
-                        height: 16,
+                        borderRadius: 9,
+                        minWidth: 18,
+                        height: 18,
                         justifyContent: 'center',
                         alignItems: 'center',
-                        paddingHorizontal: 3,
+                        paddingHorizontal: 4,
+                        borderWidth: 1.5,
+                        borderColor: '#FFFFFF',
                       }}>
                         <Text style={{ color: '#FFFFFF', fontSize: 9.5, fontWeight: '900' }}>
                           {adminBadgeCount}
@@ -715,21 +1022,33 @@ function MainDashboard() {
 
                   {/* Avatar Bubble */}
                   <View style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: '#2D1D15',
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    backgroundColor: '#6F405F',
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}>
                     <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>
-                      {String(currentUser?.username || 'S').replace('@', '').slice(0, 1).toUpperCase()}
+                      {String(currentUser?.username || 'AD').replace('@', '').slice(0, 2).toUpperCase()}
                     </Text>
                   </View>
 
                   {/* Menu Hamburger */}
-                  <TouchableOpacity onPress={() => setSidebarVisible(true)} style={{ paddingVertical: 10 }}>
-                    <HamburgerIcon />
+                  <TouchableOpacity
+                    onPress={() => setSidebarVisible(true)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: '#FAF5F7',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: '#EFE5EB',
+                    }}
+                  >
+                    <HamburgerIcon color="#6F405F" />
                   </TouchableOpacity>
                 </View>
               </>
@@ -739,9 +1058,9 @@ function MainDashboard() {
                 <TouchableOpacity
                   onPress={() => setSidebarVisible(true)}
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
                     backgroundColor: '#FAF5F7',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -764,8 +1083,8 @@ function MainDashboard() {
                     style={{
                       width: 26,
                       height: 26,
-                      borderRadius: 13,
-                      borderWidth: 1.5,
+                      borderRadius: 7,
+                      borderWidth: 1,
                       borderColor: '#6F405F',
                       marginRight: 8,
                     }}
@@ -774,20 +1093,20 @@ function MainDashboard() {
                     fontSize: 17,
                     fontWeight: '900',
                     color: '#6F405F',
-                    letterSpacing: -0.4,
+                    letterSpacing: -0.3,
                   }}>
                     Awaaj Man Ki
                   </Text>
-                  <Text style={{ fontSize: 18, color: '#D96C3D', marginLeft: 2, fontWeight: '900', transform: [{ translateY: -1 }] }}>•</Text>
+                  <Text style={{ fontSize: 18, color: '#D96C3D', marginLeft: 3, fontWeight: '900', transform: [{ translateY: -1 }] }}>•</Text>
                 </View>
 
                 {/* Right Side: Mood Trigger button */}
                 <TouchableOpacity
                   onPress={handleToggleMoodModal}
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
                     backgroundColor: activeMood ? 'rgba(111, 64, 95, 0.12)' : '#FAF5F7',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -1177,194 +1496,238 @@ function MainDashboard() {
         )}
       </View>
 
-      {/* Custom Tab Navigator */}
+      {/* Custom Mobile Bottom Tab Navigator */}
       {!(activeTab === 'Chat' && chatTarget !== null) && (
         activeTab === 'Admin' ? (
-          // ── ADMIN WORKSPACE BOTTOM TABS ──
+          // ── ADMIN WORKSPACE BOTTOM TABS (DARK THEME) ──
           <View style={{
-            height: 66,
+            height: Platform.OS === 'ios' ? 82 : 62,
             flexDirection: 'row',
-            backgroundColor: '#6F405F',
+            backgroundColor: '#1E101D',
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
-            paddingBottom: Platform.OS === 'ios' ? 14 : 6,
-            paddingTop: 8,
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.05)',
-            elevation: 24,
+            borderTopWidth: 1.5,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+            paddingTop: 6,
+            elevation: 30,
             shadowColor: '#000000',
-            shadowOpacity: 0.15,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.4,
+            shadowRadius: 18,
+            shadowOffset: { width: 0, height: -6 },
           }}>
             {/* Dashboard */}
-            <TouchableOpacity style={styles.tabButton} onPress={() => setActiveAdminTab('Dashboard')}>
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center' }}>
-                <DocIcon color={activeAdminTab === 'Dashboard' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+            <TouchableOpacity
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => setActiveAdminTab('Dashboard')}
+              activeOpacity={0.7}
+            >
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <DocIcon color={activeAdminTab === 'Dashboard' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { marginTop: 4, color: activeAdminTab === 'Dashboard' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeAdminTab === 'Dashboard' ? 'bold' : '600' }]}>Metrics</Text>
-              {activeAdminTab === 'Dashboard' && (
-                <View style={{ position: 'absolute', bottom: -2, width: 10, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeAdminTab === 'Dashboard' ? '800' : '600',
+                color: activeAdminTab === 'Dashboard' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                Metrics
+              </Text>
             </TouchableOpacity>
 
             {/* Reports Queue */}
-            <TouchableOpacity style={styles.tabButton} onPress={() => setActiveAdminTab('Reports')}>
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center' }}>
-                <FlagIcon color={activeAdminTab === 'Reports' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+            <TouchableOpacity
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => setActiveAdminTab('Reports')}
+              activeOpacity={0.7}
+            >
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3, position: 'relative' }}>
+                <FlagIcon color={activeAdminTab === 'Reports' ? '#F87171' : '#8E7E8B'} size={20} />
+                {adminBadgeCount > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -10,
+                    backgroundColor: '#EF4444',
+                    borderRadius: 7,
+                    minWidth: 14,
+                    height: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 3,
+                  }}>
+                    <Text style={{ fontSize: 8.5, fontWeight: 'bold', color: '#FFFFFF' }}>{adminBadgeCount}</Text>
+                  </View>
+                )}
               </View>
-              <Text style={[styles.tabButtonText, { marginTop: 4, color: activeAdminTab === 'Reports' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeAdminTab === 'Reports' ? 'bold' : '600' }]}>Reports</Text>
-              {activeAdminTab === 'Reports' && (
-                <View style={{ position: 'absolute', bottom: -2, width: 10, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeAdminTab === 'Reports' ? '800' : '600',
+                color: activeAdminTab === 'Reports' ? '#F87171' : '#8E7E8B',
+              }}>
+                Reports
+              </Text>
             </TouchableOpacity>
 
             {/* Content Review */}
-            <TouchableOpacity style={styles.tabButton} onPress={() => setActiveAdminTab('ContentReview')}>
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center' }}>
-                <EyeIcon color={activeAdminTab === 'ContentReview' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+            <TouchableOpacity
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => setActiveAdminTab('ContentReview')}
+              activeOpacity={0.7}
+            >
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <EyeIcon color={activeAdminTab === 'ContentReview' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { marginTop: 4, color: activeAdminTab === 'ContentReview' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeAdminTab === 'ContentReview' ? 'bold' : '600' }]}>Review</Text>
-              {activeAdminTab === 'ContentReview' && (
-                <View style={{ position: 'absolute', bottom: -2, width: 10, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeAdminTab === 'ContentReview' ? '800' : '600',
+                color: activeAdminTab === 'ContentReview' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                Review
+              </Text>
             </TouchableOpacity>
 
             {/* Users */}
-            <TouchableOpacity style={styles.tabButton} onPress={() => setActiveAdminTab('Users')}>
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center' }}>
-                <ProfileIcon color={activeAdminTab === 'Users' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+            <TouchableOpacity
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => setActiveAdminTab('Users')}
+              activeOpacity={0.7}
+            >
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <ProfileIcon color={activeAdminTab === 'Users' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { marginTop: 4, color: activeAdminTab === 'Users' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeAdminTab === 'Users' ? 'bold' : '600' }]}>Users</Text>
-              {activeAdminTab === 'Users' && (
-                <View style={{ position: 'absolute', bottom: -2, width: 10, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeAdminTab === 'Users' ? '800' : '600',
+                color: activeAdminTab === 'Users' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                Users
+              </Text>
             </TouchableOpacity>
 
             {/* More / Menu */}
-            <TouchableOpacity style={styles.tabButton} onPress={() => setSidebarVisible(true)}>
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center' }}>
-                <HamburgerIcon color="rgba(255, 255, 255, 0.65)" />
+            <TouchableOpacity
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+              onPress={() => setSidebarVisible(true)}
+              activeOpacity={0.7}
+            >
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <HamburgerIcon color="#8E7E8B" />
               </View>
-              <Text style={[styles.tabButtonText, { marginTop: 4, color: 'rgba(255, 255, 255, 0.65)', fontWeight: '600' }]}>Menu</Text>
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#8E7E8B' }}>
+                Menu
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
-          // ── USER SPACE BOTTOM TABS ──
+          // ── USER SPACE BOTTOM TABS (DARK LUXURY THEME) ──
           <View style={{
-            height: 66,
+            height: Platform.OS === 'ios' ? 82 : 62,
             flexDirection: 'row',
-            backgroundColor: '#6F405F',
+            backgroundColor: '#1E101D',
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
-            paddingBottom: Platform.OS === 'ios' ? 14 : 6,
-            paddingTop: 8,
-            borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.05)',
-            elevation: 24,
+            borderTopWidth: 1.5,
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.08)',
+            paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+            paddingTop: 6,
+            elevation: 30,
             shadowColor: '#000000',
-            shadowOpacity: 0.15,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.4,
+            shadowRadius: 18,
+            shadowOffset: { width: 0, height: -6 },
           }}>
             {/* Feed Tab */}
             <TouchableOpacity
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: Platform.OS === 'ios' ? 4 : 2,
-                position: 'relative',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => { setActiveTab('Feed'); setChatTarget(null); }}
+              activeOpacity={0.75}
             >
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <HomeIcon color={activeTab === 'Feed' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <HomeIcon color={activeTab === 'Feed' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { color: activeTab === 'Feed' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Feed' ? 'bold' : '600' }]}>{t('home', 'Feed')}</Text>
-              {activeTab === 'Feed' && (
-                <View style={{ position: 'absolute', bottom: -6, width: 12, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeTab === 'Feed' ? '800' : '600',
+                color: activeTab === 'Feed' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                {t('home', 'Feed')}
+              </Text>
             </TouchableOpacity>
 
             {/* Explore Tab */}
             <TouchableOpacity
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: Platform.OS === 'ios' ? 4 : 2,
-                position: 'relative',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => { setActiveTab('Explore'); setChatTarget(null); }}
+              activeOpacity={0.75}
             >
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <ExploreIcon color={activeTab === 'Explore' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <ExploreIcon color={activeTab === 'Explore' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { color: activeTab === 'Explore' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Explore' ? 'bold' : '600' }]}>{t('explore', 'Explore')}</Text>
-              {activeTab === 'Explore' && (
-                <View style={{ position: 'absolute', bottom: -6, width: 12, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeTab === 'Explore' ? '800' : '600',
+                color: activeTab === 'Explore' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                {t('explore', 'Explore')}
+              </Text>
             </TouchableOpacity>
 
             {/* Music Tab */}
             <TouchableOpacity
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: Platform.OS === 'ios' ? 4 : 2,
-                position: 'relative',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => { setActiveTab('Music'); setChatTarget(null); }}
+              activeOpacity={0.75}
             >
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <MusicIcon color={activeTab === 'Music' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <MusicIcon color={activeTab === 'Music' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { color: activeTab === 'Music' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Music' ? 'bold' : '600' }]}>{t('music', 'Music')}</Text>
-              {activeTab === 'Music' && (
-                <View style={{ position: 'absolute', bottom: -6, width: 12, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeTab === 'Music' ? '800' : '600',
+                color: activeTab === 'Music' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                {t('music', 'Music')}
+              </Text>
             </TouchableOpacity>
 
-            {/* Saved Tab */}
+            {/* Saved Posts Tab */}
             <TouchableOpacity
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: Platform.OS === 'ios' ? 4 : 2,
-                position: 'relative',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => { setActiveTab('Saved'); setChatTarget(null); }}
+              activeOpacity={0.75}
             >
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <StarIcon color={activeTab === 'Saved' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <StarIcon color={activeTab === 'Saved' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { color: activeTab === 'Saved' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Saved' ? 'bold' : '600' }]}>{t('savedPosts', 'Saved')}</Text>
-              {activeTab === 'Saved' && (
-                <View style={{ position: 'absolute', bottom: -6, width: 12, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeTab === 'Saved' ? '800' : '600',
+                color: activeTab === 'Saved' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                {t('savedPosts', 'Saved')}
+              </Text>
             </TouchableOpacity>
 
             {/* Profile Tab */}
             <TouchableOpacity
-              style={{
-                flex: 1,
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingBottom: Platform.OS === 'ios' ? 4 : 2,
-                position: 'relative',
-              }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => { setActiveTab('Profile'); setChatTarget(null); }}
+              activeOpacity={0.75}
             >
-              <View style={{ height: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 2 }}>
-                <ProfileIcon color={activeTab === 'Profile' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)'} size={19} />
+              <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginBottom: 3 }}>
+                <ProfileIcon color={activeTab === 'Profile' ? '#FFAAB0' : '#8E7E8B'} size={20} />
               </View>
-              <Text style={[styles.tabButtonText, { color: activeTab === 'Profile' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)', fontWeight: activeTab === 'Profile' ? 'bold' : '600' }]}>{t('me', 'Me')}</Text>
-              {activeTab === 'Profile' && (
-                <View style={{ position: 'absolute', bottom: -6, width: 12, height: 3, borderRadius: 1.5, backgroundColor: '#FFFFFF' }} />
-              )}
+              <Text style={{
+                fontSize: 11,
+                fontWeight: activeTab === 'Profile' ? '800' : '600',
+                color: activeTab === 'Profile' ? '#FFAAB0' : '#8E7E8B',
+              }}>
+                {t('me', 'Me')}
+              </Text>
             </TouchableOpacity>
           </View>
         )
@@ -1377,20 +1740,22 @@ function MainDashboard() {
 // ── ROOT EXPORT WRAPPER ──
 export default function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <NotificationProvider>
-          <PostProvider>
-            <ChatProvider>
-              <MoodMusicProvider>
-                <StatusBar barStyle="dark-content" backgroundColor="#F8F5F4" />
-                <AuthWrapper />
-              </MoodMusicProvider>
-            </ChatProvider>
-          </PostProvider>
-        </NotificationProvider>
-      </LanguageProvider>
-    </AuthProvider>
+    <View style={{ flex: 1, backgroundColor: '#F8F5F4' }}>
+      <AuthProvider>
+        <LanguageProvider>
+          <NotificationProvider>
+            <PostProvider>
+              <ChatProvider>
+                <MoodMusicProvider>
+                  <StatusBar barStyle="dark-content" backgroundColor="#F8F5F4" />
+                  <AuthWrapper />
+                </MoodMusicProvider>
+              </ChatProvider>
+            </PostProvider>
+          </NotificationProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </View>
   );
 }
 

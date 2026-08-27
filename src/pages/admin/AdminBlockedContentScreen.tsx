@@ -62,6 +62,27 @@ export function AdminBlockedContentScreen() {
 
   return (
     <View style={[styles.feedContainer, { backgroundColor: '#FCFAF9' }]}>
+      {/* Clean Compact Header Overview Bar */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3ECEB',
+        elevation: 2,
+        shadowColor: '#2D1D15',
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: '#2D1D15' }}>
+          Blocked Footprints
+        </Text>
+        <Text style={{ fontSize: 11.5, color: '#8C8385', fontWeight: '500', marginTop: 2 }}>
+          AI content moderation history and violations
+        </Text>
+      </View>
+
       {/* Segmented Filter Bar - Blends seamlessly into page background */}
       <View style={{ paddingVertical: 12, paddingHorizontal: 16 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>

@@ -1,18 +1,30 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView, TextInput } from 'react-native';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  TextInput,
+  ImageBackground,
+  Modal,
+} from 'react-native';
 import { COLORS } from '../../styles/theme';
 import { styles as appStyles } from '../../styles/appStyles';
 import { apiService } from '../../services/apiService';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getCustomTopics, saveCustomTopic } from '../../utils/topicUtils';
-import { Modal } from 'react-native';
+import { CloseIcon, ExploreIcon } from '../../components/common/Icons';
 
 const PARENT_ORDER = ['FEELINGS', 'EXPRESSION', 'LIFE_WORK', 'SOCIETY_POLITICS', 'ENTERTAINMENT', 'SPORTS', 'GENERAL'];
 
 const EMOJI_PRESETS = [
-  '💡', '🧘', '🚀', '🎭', '🧠', '🎨', '🎵', '📚', '🏆', '💻', 
-  '🔮', '🍿', '☕', '🎮', '🌿', '✈️', '💬', '✨', '🔥', '💖', 
+  '💡', '🧘', '🚀', '🎭', '🧠', '🎨', '🎵', '📚', '🏆', '💻',
+  '🔮', '🍿', '☕', '🎮', '🌿', '✈️', '💬', '✨', '🔥', '💖',
   '🤫', '🌟', '🎯', '⚡', '👑', '🌈', '🍀', '🍕', '🎉', '🥊'
 ];
 
@@ -22,12 +34,13 @@ interface MyTopicsScreenProps {
 
 export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
   const { currentUser } = useAuth() as any;
-  const { t } = useLanguage() as any;
+  const { t, currentLanguage, translateText } = useLanguage() as any;
   const [topics, setTopics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [newTopicInput, setNewTopicInput] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('💡');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTopics = useCallback(() => {
     setLoading(true);
@@ -47,7 +60,6 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
       })
       .catch((err) => {
         console.warn('Error loading custom topics:', err);
-        // Fallback to local custom topics
         const local = getCustomTopics();
         setTopics(local);
       })
@@ -68,62 +80,213 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
       Alert.alert('Error', 'Invalid topic name. Use letters, numbers, and underscores.');
       return;
     }
-    
+
     saveCustomTopic(cleanName, selectedEmoji, currentUser?.username || '@anonymous');
     setNewTopicInput('');
     setCreateModalOpen(false);
     Alert.alert('Success', `Topic ${selectedEmoji} #${cleanName} created!`);
-    
-    // Refresh list
+
     setTimeout(() => {
       fetchTopics();
     }, 500);
   };
 
-  // Group topics by parent category
-  const groups = PARENT_ORDER.map((parent) => {
-    const parentTopics = topics.filter((tItem) => {
-      const pTopic = (tItem.parentTopic || 'GENERAL').toUpperCase();
-      return pTopic === parent;
+  // Filter topics with search query
+  const filteredTopics = useMemo(() => {
+    if (!searchQuery.trim()) return topics;
+    const q = searchQuery.toLowerCase().trim();
+    return topics.filter((tItem) => {
+      const name = String(tItem.name || tItem.label || '').toLowerCase();
+      const parent = String(tItem.parentTopic || '').toLowerCase();
+      return name.includes(q) || parent.includes(q);
     });
-    return { parent, topics: parentTopics };
-  }).filter((group) => group.topics.length > 0);
+  }, [topics, searchQuery]);
+
+  // Group topics by parent category
+  const groups = useMemo(() => {
+    return PARENT_ORDER.map((parent) => {
+      const parentTopics = filteredTopics.filter((tItem) => {
+        const pTopic = (tItem.parentTopic || 'GENERAL').toUpperCase();
+        return pTopic === parent;
+      });
+      return { parent, topics: parentTopics };
+    }).filter((group) => group.topics.length > 0);
+  }, [filteredTopics]);
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header Block */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <Text style={styles.title}>{t('myTopics', 'My Topics')} ({topics.length})</Text>
-            <TouchableOpacity onPress={() => setCreateModalOpen(true)} style={styles.createBtn}>
-              <Text style={styles.createBtnText}>+ Create Topic</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.subtitle}>{t('myTopicsDescription', 'Subtopics and discussions you created.')}</Text>
+        {/* ── TOP HERO COVER BANNER ── */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+          shadowColor: '#1A0C16',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.08,
+          shadowRadius: 14,
+          elevation: 4,
+        }}>
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=900&auto=format&fit=crop&q=80' }}
+            defaultSource={require('../../assets/music-cover.jpg')}
+            style={{ width: '100%', minHeight: 165 }}
+            resizeMode="cover"
+          >
+            {/* Twilight plum soft overlay */}
+            <View style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(30, 16, 29, 0.45)',
+            }} />
+
+            {/* Banner Content */}
+            <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 22 }}>
+              {/* Top Pill Emblem */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                alignSelf: 'flex-start',
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                marginBottom: 10,
+              }}>
+                <ExploreIcon color="#93C5FD" size={14} />
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#BFDBFE', letterSpacing: 0.4 }}>
+                  MY CUSTOM CHANNELS
+                </Text>
+              </View>
+
+              {/* Title & Subtitle */}
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.4, marginBottom: 4 }}>
+                {t('myTopics', 'My Topics')}
+              </Text>
+              <Text style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 18, maxWidth: 320 }}>
+                {topics.length} {topics.length === 1 ? 'topic channel created by you' : 'topic channels created by you'}
+              </Text>
+
+              {/* Create Topic Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setCreateModalOpen(true)}
+                style={{
+                  marginTop: 14,
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#E67E22',
+                  paddingHorizontal: 16,
+                  paddingVertical: 9,
+                  borderRadius: 16,
+                  shadowColor: '#E67E22',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+              >
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#FFFFFF' }}>
+                  + Create New Topic
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
         </View>
 
+        {/* ── FLOATING SEARCH BAR ── */}
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          marginHorizontal: 16,
+          marginTop: -16,
+          borderRadius: 18,
+          paddingHorizontal: 14,
+          height: 44,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderWidth: 1,
+          borderColor: '#F0EAEE',
+          shadowColor: '#1A0C16',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
+          elevation: 4,
+          marginBottom: 14,
+        }}>
+          <Text style={{ fontSize: 14, marginRight: 8, color: '#9E8E98' }}>🔍</Text>
+          <TextInput
+            placeholder="Filter created topics by name..."
+            placeholderTextColor="#9E8E98"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={{
+              flex: 1,
+              fontSize: 13,
+              color: '#2D1D15',
+              paddingVertical: 0,
+            }}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+              <CloseIcon color="#8C8385" size={13} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* ── CONTENT BODY ── */}
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color="#6F405F" size="large" />
           </View>
         ) : groups.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>{t('noCreatedTopics', 'You have not created any topics yet.')}</Text>
-            <TouchableOpacity onPress={() => setCreateModalOpen(true)} style={[styles.createBtn, { alignSelf: 'center', marginTop: 12 }]}>
+            <Text style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>💡</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: '#2D1D15', textAlign: 'center', marginBottom: 6 }}>
+              {searchQuery ? 'No matching topics' : t('noCreatedTopics', 'You have not created any topics yet.')}
+            </Text>
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'Try clearing your search query or create a new topic handle.' : 'Create custom topic handles to kickstart new anonymous discussions.'}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setCreateModalOpen(true)}
+              style={[styles.createBtn, { alignSelf: 'center', marginTop: 16, paddingHorizontal: 18, paddingVertical: 10 }]}
+            >
               <Text style={styles.createBtnText}>Create Your First Topic</Text>
             </TouchableOpacity>
           </View>
         ) : (
           groups.map((group) => (
             <View key={group.parent} style={styles.groupCard}>
-              <Text style={styles.groupHeader}>
-                {group.parent === 'GENERAL' ? t('others', 'Others') : group.parent.replace(/_/g, ' ')}
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={styles.groupHeader}>
+                  {group.parent === 'GENERAL' ? t('others', 'General & Others') : translateText(group.parent.replace(/_/g, ' '), currentLanguage)}
+                </Text>
+                <View style={{
+                  backgroundColor: 'rgba(111, 64, 95, 0.08)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#6F405F' }}>
+                    {group.topics.length} {group.topics.length === 1 ? 'topic' : 'topics'}
+                  </Text>
+                </View>
+              </View>
+
               <View style={styles.chipsContainer}>
                 {group.topics.map((topic) => (
                   <TouchableOpacity
                     key={topic.id || topic.name}
+                    activeOpacity={0.75}
                     onPress={() => onSelectTopic(topic.name || topic.id)}
                     style={styles.topicChip}
                   >
@@ -137,7 +300,7 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
         )}
       </ScrollView>
 
-      {/* Create Custom Topic Modal */}
+      {/* ── CREATE CUSTOM TOPIC MODAL ── */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -162,7 +325,7 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <Text style={{ fontSize: 18, fontWeight: '800', color: '#6F405F' }}>➕ Create Custom Topic</Text>
               <TouchableOpacity onPress={() => setCreateModalOpen(false)} style={{ padding: 4 }}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#8C8385' }}>✕</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
             <Text style={{ fontSize: 12.5, color: '#8C8385', lineHeight: 17, marginBottom: 16 }}>
@@ -179,10 +342,10 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
               borderRadius: 16,
               borderWidth: 1,
               borderColor: '#EFEAE8',
-              padding: 10
+              padding: 10,
             }}>
-              <ScrollView 
-                contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', paddingVertical: 4 }} 
+              <ScrollView
+                contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', paddingVertical: 4 }}
                 showsVerticalScrollIndicator={true}
               >
                 {EMOJI_PRESETS.map((emoji) => {
@@ -209,7 +372,7 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
                           shadowOpacity: 0.15,
                           shadowRadius: 6,
                           elevation: 3,
-                        }
+                        },
                       ]}
                     >
                       <Text style={{ fontSize: 18 }}>{emoji}</Text>
@@ -231,7 +394,7 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
               borderRadius: 14,
               backgroundColor: '#FAF8F8',
               overflow: 'hidden',
-              height: 50
+              height: 50,
             }}>
               <View style={{
                 paddingHorizontal: 12,
@@ -242,7 +405,7 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
                 borderRightColor: '#CEC7C5',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 4
+                gap: 4,
               }}>
                 <Text style={{ fontSize: 18 }}>{selectedEmoji}</Text>
                 <Text style={{ fontSize: 16, fontWeight: '900', color: '#6F405F' }}>#</Text>
@@ -267,13 +430,13 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
               />
             </View>
             <Text style={{ fontSize: 10.5, color: '#9C9395', marginTop: 8, lineHeight: 14 }}>
-              User created topics start at the bottom catalog card until they receive posts & activity!
+              User created topics start in the general catalog until they receive posts & activity!
             </Text>
 
             {/* Actions */}
             <View style={{ flexDirection: 'row', marginTop: 22, gap: 10 }}>
-              <TouchableOpacity 
-                onPress={() => setCreateModalOpen(false)} 
+              <TouchableOpacity
+                onPress={() => setCreateModalOpen(false)}
                 style={{
                   flex: 1,
                   height: 46,
@@ -287,8 +450,8 @@ export function MyTopicsScreen({ onSelectTopic }: MyTopicsScreenProps) {
               >
                 <Text style={{ fontSize: 14, fontWeight: '700', color: '#8C8385' }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={handleCreateTopic} 
+              <TouchableOpacity
+                onPress={handleCreateTopic}
                 style={{
                   flex: 2,
                   height: 46,
@@ -321,73 +484,51 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#2D1D15',
-  },
-  subtitle: {
-    fontSize: 12.5,
-    color: '#8C8385',
-  },
-  createBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: '#6F405F',
-  },
-  createBtnText: {
-    fontSize: 11.5,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
   center: {
     padding: 60,
     alignItems: 'center',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#EFEAE8',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#F0EAEE',
     padding: 30,
-    marginHorizontal: 12,
+    marginHorizontal: 16,
     marginTop: 10,
+    shadowColor: '#1A0C16',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    alignItems: 'center',
   },
   emptyText: {
     fontSize: 13,
     color: '#8C8385',
     textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 280,
   },
   groupCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: '#EFEAE8',
-    padding: 16,
-    marginHorizontal: 12,
-    marginVertical: 6,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#F0EAEE',
+    padding: 18,
+    marginHorizontal: 16,
+    marginVertical: 7,
+    shadowColor: '#1A0C16',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   groupHeader: {
-    fontSize: 14.5,
-    fontWeight: 'bold',
-    color: '#6F405F',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5ECEE',
-    paddingBottom: 8,
-    marginBottom: 12,
+    fontSize: 15.5,
+    fontWeight: '900',
+    color: '#2D1D15',
+    letterSpacing: -0.2,
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -397,20 +538,36 @@ const styles = StyleSheet.create({
   topicChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#D7C9D2',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#EFEAE8',
+    backgroundColor: '#FAF9FA',
     gap: 6,
   },
   topicIcon: {
-    fontSize: 13,
+    fontSize: 14,
   },
   topicName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#3D2A35',
+  },
+  createBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 16,
+    backgroundColor: '#E67E22',
+    shadowColor: '#E67E22',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  createBtnText: {
     fontSize: 12.5,
-    fontWeight: 'bold',
-    color: '#432E3C',
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

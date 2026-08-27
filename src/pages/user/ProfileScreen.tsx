@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Modal, SafeAreaView, FlatList } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Alert, Modal, SafeAreaView, FlatList, Platform, StatusBar, ImageBackground, Image } from 'react-native';
 import { InitialAvatar } from '../../components/common/InitialAvatar';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
@@ -9,6 +9,21 @@ import { usePosts } from '../../context/PostContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { COLORS } from '../../styles/theme';
 import { styles } from '../../styles/appStyles';
+import {
+  CloseIcon,
+  ChevronRightIcon,
+  ShieldIcon,
+  LockIcon,
+  ProfileIcon,
+  SettingsIcon,
+  HelpIcon,
+  LogoutIcon,
+  TagIcon,
+  InfoIcon,
+  CheckIcon,
+  StarIcon,
+  DocIcon,
+} from '../../components/common/Icons';
 
 export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } = {}) {
   const { currentUser, logout, updateProfile } = useAuth() as any;
@@ -110,281 +125,494 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
     }, 800);
   };
 
-  const AVATAR_COLORS = ['#6F405F', '#3F7772', '#D96C3D', '#2D1D15', '#2E7D52', '#4A3B6F'];
+  const AVATAR_COLORS = ['#6F405F', '#3F7772', '#D96C3D', '#2D1D15', '#2E7D52', '#4A3B6F', '#C46F76', '#1E3A8A'];
 
   return (
-    <ScrollView style={styles.profileContainer} contentContainerStyle={{ paddingBottom: 96 }}>
-      <View style={styles.profileHero}>
-        <InitialAvatar initials={currentUser?.avatarInitials} color={currentUser?.avatarColor} size={84} />
-        <Text style={styles.profileName}>{currentUser?.username ? (currentUser.username.startsWith('@') ? currentUser.username : `@${currentUser.username}`) : ''}</Text>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: '#F8F5F4' }}
+      contentContainerStyle={{ paddingBottom: 110 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── TOP HERO COVER IMAGE BANNER ── */}
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        overflow: 'hidden',
+        shadowColor: '#1A0C16',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        elevation: 4,
+        marginBottom: 16,
+      }}>
+        {/* Cover Photo Header */}
+        <ImageBackground
+          source={{ uri: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=900&auto=format&fit=crop&q=80' }}
+          defaultSource={require('../../assets/music-cover.jpg')}
+          style={{ width: '100%', height: 145 }}
+          resizeMode="cover"
+        >
+          {/* Subtle soft gradient overlay */}
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(30, 16, 29, 0.35)',
+          }} />
+        </ImageBackground>
 
-        <View style={styles.avatarColorSelector}>
-          <Text style={styles.selectorLabel}>{t('customizeAvatarColor', 'Customize Avatar Color:')}</Text>
-          <View style={styles.colorPaletteRow}>
-            {AVATAR_COLORS.map(color => {
-              const isActive = currentUser?.avatarColor === color;
-              return (
-                <TouchableOpacity
-                  key={color}
-                  style={[
-                    styles.paletteCircle,
-                    { backgroundColor: color, justifyContent: 'center', alignItems: 'center' },
-                    isActive && styles.paletteCircleActive,
-                  ]}
-                  onPress={() => updateProfile({ avatarColor: color })}
-                >
-                  {isActive && (
-                    <View style={{
-                      width: 10,
-                      height: 6,
-                      borderLeftWidth: 2,
-                      borderBottomWidth: 2,
-                      borderColor: '#FFFFFF',
-                      transform: [{ rotate: '-45deg' }],
-                      marginTop: -2,
-                    }} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+        {/* Profile Info Details (Light Aesthetic) */}
+        <View style={{ paddingHorizontal: 20, paddingBottom: 22, alignItems: 'center' }}>
+          {/* Overlapping Avatar with Crisp White Ring */}
+          <View style={{ position: 'relative', marginTop: -46, marginBottom: 10 }}>
+            <View style={{
+              borderRadius: 48,
+              padding: 4,
+              backgroundColor: '#FFFFFF',
+              borderWidth: 2,
+              borderColor: '#F0EAEE',
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.12,
+              shadowRadius: 8,
+              elevation: 6,
+            }}>
+              <InitialAvatar
+                initials={currentUser?.avatarInitials}
+                color={currentUser?.avatarColor || '#6F405F'}
+                size={78}
+              />
+            </View>
+            <View style={{
+              position: 'absolute',
+              bottom: 4,
+              right: 4,
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              backgroundColor: '#10B981',
+              borderWidth: 2.5,
+              borderColor: '#FFFFFF',
+            }} />
+          </View>
+
+          {/* Username in Crisp Dark Text */}
+          <Text style={{ fontSize: 22, fontWeight: '900', color: '#2D1D15', letterSpacing: -0.4, marginBottom: 4 }}>
+            {currentUser?.username ? (currentUser.username.startsWith('@') ? currentUser.username : `@${currentUser.username}`) : '@anonymous'}
+          </Text>
+
+          {/* Verified Anonymous Shield Badge in Light Green */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            backgroundColor: '#ECFDF5',
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: '#A7F3D0',
+            marginBottom: 16,
+          }}>
+            <ShieldIcon color="#059669" size={14} />
+            <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#059669', letterSpacing: 0.3 }}>
+              256-Bit Identity Shielded • 100% Safe
+            </Text>
+          </View>
+
+          {/* Avatar Color Palette (Light Theme) */}
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#8C8385', marginBottom: 8, letterSpacing: 0.2 }}>
+              {t('customizeAvatarColor', 'Customize Avatar Theme Color:')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {AVATAR_COLORS.map(color => {
+                const isActive = (currentUser?.avatarColor || '#6F405F') === color;
+                return (
+                  <TouchableOpacity
+                    key={color}
+                    activeOpacity={0.7}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: color,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      borderWidth: isActive ? 2.5 : 1,
+                      borderColor: isActive ? '#6F405F' : '#E8DFE5',
+                      transform: [{ scale: isActive ? 1.15 : 1 }],
+                      shadowColor: color,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: isActive ? 0.35 : 0,
+                      shadowRadius: 4,
+                      elevation: isActive ? 3 : 0,
+                    }}
+                    onPress={() => updateProfile({ avatarColor: color })}
+                  >
+                    {isActive && (
+                      <View style={{
+                        width: 8,
+                        height: 5,
+                        borderLeftWidth: 2,
+                        borderBottomWidth: 2,
+                        borderColor: '#FFFFFF',
+                        transform: [{ rotate: '-45deg' }],
+                        marginTop: -1,
+                      }} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Stats Row */}
-      <View style={styles.statsCard}>
-        <TouchableOpacity onPress={() => setMyPostsVisible(true)} style={styles.statColumn}>
-          <Text style={styles.statNumber}>{ownPosts.length}</Text>
-          <Text style={styles.statLabel}>{t('thoughts', 'Thoughts')} ↗</Text>
+      {/* ── STATS ROW CARDS ── */}
+      <View style={{
+        flexDirection: 'row',
+        gap: 12,
+        paddingHorizontal: 16,
+        marginBottom: 14,
+      }}>
+        {/* Thoughts Published */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setMyPostsVisible(true)}
+          style={{
+            flex: 1,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 18,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: '#F0EAEE',
+            shadowColor: '#1A0C16',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
+            elevation: 3,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#6F405F' }}>{ownPosts.length}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#8C8385' }}>{t('thoughts', 'My Thoughts')}</Text>
+            <ChevronRightIcon color="#C46F76" size={10} />
+          </View>
         </TouchableOpacity>
-        <View style={styles.statColumn}>
-          <Text style={styles.statNumber}>{reactionsReceived}</Text>
-          <Text style={styles.statLabel}>{t('reactions', 'Reactions')}</Text>
+
+        {/* Reactions Received */}
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 18,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: '#F0EAEE',
+            shadowColor: '#1A0C16',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.06,
+            shadowRadius: 10,
+            elevation: 3,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 24, fontWeight: '900', color: '#C46F76' }}>{reactionsReceived}</Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#8C8385', marginTop: 2 }}>
+            {t('reactions', 'Reactions Received')}
+          </Text>
         </View>
       </View>
 
-      {/* User Bio section */}
-      <View style={styles.bioCard}>
-        <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>{t('anonymousBio', 'Anonymous Bio')}</Text>
-          <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
-            <Text style={styles.bioEditButtonText}>{isEditing ? t('cancel', 'Cancel') : t('edit', 'Edit')}</Text>
+      {/* ── ANONYMOUS BIO CARD ── */}
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#F0EAEE',
+        marginBottom: 14,
+        shadowColor: '#1A0C16',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2,
+      }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+              <TagIcon color="#6F405F" size={15} />
+            </View>
+            <Text style={{ fontSize: 14.5, fontWeight: '900', color: '#2D1D15' }}>
+              {t('anonymousBio', 'Anonymous Bio')}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setIsEditing(!isEditing)}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 8,
+              backgroundColor: isEditing ? '#FAF4F7' : 'rgba(111, 64, 95, 0.08)',
+            }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#6F405F' }}>
+              {isEditing ? t('cancel', 'Cancel') : t('edit', 'Edit')}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {isEditing ? (
-          <View style={styles.bioEditForm}>
+          <View style={{ gap: 10 }}>
             <TextInput
               value={bioInput}
               onChangeText={setBioInput}
               multiline
               maxLength={150}
-              style={styles.bioTextInput}
+              placeholder="Write a few lines about your anonymous persona..."
+              placeholderTextColor="#9E8E98"
+              style={{
+                borderWidth: 1.5,
+                borderColor: '#6F405F',
+                borderRadius: 12,
+                padding: 12,
+                fontSize: 14,
+                color: '#2D1D15',
+                minHeight: 80,
+                textAlignVertical: 'top',
+                backgroundColor: '#FAF9FA',
+              }}
             />
-            <TouchableOpacity onPress={handleSaveProfile} style={styles.bioSaveButton}>
-              <Text style={styles.bioSaveText}>{t('saveProfile', 'Save Profile')}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 11, color: '#9E8E98' }}>{bioInput.length}/150</Text>
+              <TouchableOpacity
+                onPress={handleSaveProfile}
+                style={{
+                  backgroundColor: '#6F405F',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>{t('saveProfile', 'Save Bio')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
-          <Text style={styles.bioText}>{currentUser?.bio || t('noBio', 'No bio written yet...')}</Text>
+          <Text style={{ fontSize: 13.5, color: currentUser?.bio ? '#3D2A35' : '#9E8E98', lineHeight: 20, fontStyle: currentUser?.bio ? 'normal' : 'italic' }}>
+            {currentUser?.bio || t('noBio', 'No bio written yet. Tap "Edit" to tell others what you are experiencing...')}
+          </Text>
         )}
       </View>
 
-      {/* Preferred Language Selector */}
-      <View style={styles.bioCard}>
-        <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>🌐 {t('preferredLanguage', 'Preferred Language')}</Text>
-        </View>
-        <Text style={[styles.bioText, { marginBottom: 12 }]}>
-          Change your language preference. This updates static UI text and feed translation targets.
+      {/* ── SECTION: CONTENT & LANGUAGE ── */}
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#F0EAEE',
+        marginBottom: 14,
+        shadowColor: '#1A0C16',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2,
+      }}>
+        <Text style={{ fontSize: 11, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.6, marginBottom: 8, textTransform: 'uppercase' }}>
+          Content & Preferences
         </Text>
-        
-        {/* Dropdown Button */}
-        <TouchableOpacity
-          onPress={() => setLangPickerVisible(true)}
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#E1DCDB',
-            backgroundColor: '#FFFFFF',
-          }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#2D1D15' }}>
-            {(() => {
-              const activeLang = supportedLanguages.find((lang: any) => lang.code === currentLanguage);
-              return activeLang ? `${activeLang.native} (${activeLang.label})` : currentLanguage;
-            })()}
-          </Text>
-          <Text style={{ fontSize: 14, color: '#8C8385' }}>▼</Text>
-        </TouchableOpacity>
 
-        {/* Custom Dropdown Modal */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={langPickerVisible}
-          onRequestClose={() => setLangPickerVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.centerModalOverlay}
-            activeOpacity={1}
-            onPress={() => setLangPickerVisible(false)}
-          >
-            <View style={[styles.reportModalCard, { maxHeight: '70%', paddingVertical: 20 }]}>
-              <View style={[styles.modalHeader, { paddingHorizontal: 4, marginBottom: 12 }]}>
-                <Text style={styles.modalTitle}>{t('preferredLanguage', 'Preferred Language')}</Text>
-                <TouchableOpacity onPress={() => setLangPickerVisible(false)} style={styles.modalCloseButton}>
-                  <Text style={styles.modalCloseText}>✖</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={{ width: '100%' }}>
-                {supportedLanguages.map((lang: any) => {
-                  const isActive = currentLanguage === lang.code;
-                  return (
-                    <TouchableOpacity
-                      key={lang.code}
-                      onPress={() => {
-                        changeLanguage(lang.code);
-                        setLangPickerVisible(false);
-                      }}
-                      style={{
-                        paddingVertical: 14,
-                        paddingHorizontal: 16,
-                        borderBottomWidth: 1,
-                        borderBottomColor: '#F8F5F4',
-                        backgroundColor: isActive ? 'rgba(111, 64, 95, 0.05)' : 'transparent',
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        width: '100%',
-                      }}
-                    >
-                      <Text style={{
-                        fontSize: 14,
-                        fontWeight: isActive ? 'bold' : 'normal',
-                        color: isActive ? COLORS.deepPlum : '#2D1D15',
-                      }}>
-                        {lang.native} ({lang.label})
-                      </Text>
-                      {isActive && (
-                        <Text style={{ color: COLORS.deepPlum, fontWeight: 'bold' }}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      </View>
-
-      {/* Settings & Preferences Sections */}
-      <View style={styles.bioCard}>
-        <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>{t('settingsAndPreferences', 'Settings & Preferences')}</Text>
-        </View>
-
-        {/* My Thoughts (My Posts) Item */}
+        {/* My Thoughts (My Posts) */}
         <TouchableOpacity
           onPress={() => setMyPostsVisible(true)}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingVertical: 14,
+            paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15' }}>
-              ✍️ {t('myThoughts', 'My Thoughts')}
-            </Text>
-            <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2 }}>
-              {t('myThoughtsDesc', 'View, review, or delete the thoughts you have published.')}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FAF4F7', justifyContent: 'center', alignItems: 'center' }}>
+              <DocIcon color="#6F405F" size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#2D1D15' }}>
+                {t('myThoughts', 'My Thoughts')}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 1 }}>
+                {t('myThoughtsDesc', 'Manage and review your published thoughts')}
+              </Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 16, color: '#CEC7C5' }}>▶</Text>
+          <ChevronRightIcon color="#C4B7BF" size={13} />
         </TouchableOpacity>
 
-        {/* Account Settings Item */}
+        {/* Preferred Language */}
+        <TouchableOpacity
+          onPress={() => setLangPickerVisible(true)}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 12,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 16 }}>🌐</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#2D1D15' }}>
+                {t('preferredLanguage', 'Preferred Language')}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#6F405F', fontWeight: '700', marginTop: 1 }}>
+                {(() => {
+                  const activeLang = supportedLanguages.find((lang: any) => lang.code === currentLanguage);
+                  return activeLang ? `${activeLang.native} (${activeLang.label})` : currentLanguage;
+                })()}
+              </Text>
+            </View>
+          </View>
+          <ChevronRightIcon color="#C4B7BF" size={13} />
+        </TouchableOpacity>
+      </View>
+
+      {/* ── SECTION: PRIVACY & SECURITY ── */}
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#F0EAEE',
+        marginBottom: 14,
+        shadowColor: '#1A0C16',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2,
+      }}>
+        <Text style={{ fontSize: 11, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.6, marginBottom: 8, textTransform: 'uppercase' }}>
+          Privacy & Security Controls
+        </Text>
+
+        {/* Account Settings */}
         <TouchableOpacity
           onPress={() => setAccountSettingsVisible(true)}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingVertical: 14,
+            paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15' }}>
-              {t('accountSettings', 'Account Settings')}
-            </Text>
-            <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2 }}>
-              {t('accountSettingsDesc', 'Private full name, mobile number, email, and password.')}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center' }}>
+              <ProfileIcon color="#16A34A" size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#2D1D15' }}>
+                {t('accountSettings', 'Account & Private Credentials')}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 1 }}>
+                {t('accountSettingsDesc', 'Manage phone, email, and password')}
+              </Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 16, color: '#CEC7C5' }}>▶</Text>
+          <ChevronRightIcon color="#C4B7BF" size={13} />
         </TouchableOpacity>
 
-        {/* Privacy Settings Item */}
+        {/* Privacy Settings */}
         <TouchableOpacity
           onPress={() => setPrivacySettingsVisible(true)}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingVertical: 14,
+            paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15' }}>
-              {t('privacySettings', 'Privacy Settings')}
-            </Text>
-            <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2 }}>
-              {t('privacySettingsDesc', 'Comment permissions, activity visibility, sensitive content.')}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFFBEB', justifyContent: 'center', alignItems: 'center' }}>
+              <LockIcon color="#D97706" size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#2D1D15' }}>
+                {t('privacySettings', 'Privacy & Comment Controls')}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 1 }}>
+                {t('privacySettingsDesc', 'Comment permissions and visibility filters')}
+              </Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 16, color: '#CEC7C5' }}>▶</Text>
+          <ChevronRightIcon color="#C4B7BF" size={13} />
         </TouchableOpacity>
 
-        {/* Safety & Moderation Item */}
+        {/* Safety & Moderation */}
         <TouchableOpacity
           onPress={() => setSafetySettingsVisible(true)}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingVertical: 14,
+            paddingVertical: 12,
           }}
         >
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ fontSize: 14.5, fontWeight: 'bold', color: '#2D1D15' }}>
-              {t('safetyAndModeration', 'Safety & Moderation')}
-            </Text>
-            <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2 }}>
-              {t('safetyAndModerationDesc', 'Blocked users list, reports tracking, guidelines.')}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF0F2', justifyContent: 'center', alignItems: 'center' }}>
+              <ShieldIcon color="#C46F76" size={18} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#2D1D15' }}>
+                {t('safetyAndModeration', 'Safety & Moderation Hub')}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 1 }}>
+                {t('safetyAndModerationDesc', 'Blocked footprints, keyword mute list, and reports')}
+              </Text>
+            </View>
           </View>
-          <Text style={{ fontSize: 16, color: '#CEC7C5' }}>▶</Text>
+          <ChevronRightIcon color="#C4B7BF" size={13} />
         </TouchableOpacity>
       </View>
 
-      {/* Help & Safety Info Sections */}
-      <View style={styles.bioCard}>
-        <View style={styles.bioHeaderRow}>
-          <Text style={styles.bioTitle}>{t('helpAndSafety', 'Help & Safety')}</Text>
-        </View>
+      {/* ── SECTION: SUPPORT & INFORMATION ── */}
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 16,
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#F0EAEE',
+        marginBottom: 18,
+        shadowColor: '#1A0C16',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2,
+      }}>
+        <Text style={{ fontSize: 11, fontWeight: '900', color: '#9E8E98', letterSpacing: 0.6, marginBottom: 8, textTransform: 'uppercase' }}>
+          Support & Trust
+        </Text>
 
         {/* Community Guidelines */}
         <TouchableOpacity
@@ -395,11 +623,16 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             justifyContent: 'space-between',
             paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#5C5254' }}>Community Guidelines</Text>
-          <Text style={{ fontSize: 14, color: '#CEC7C5' }}>▶</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+              <DocIcon color="#64748B" size={16} />
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#3D2A35' }}>Community Guidelines</Text>
+          </View>
+          <ChevronRightIcon color="#C4B7BF" size={12} />
         </TouchableOpacity>
 
         {/* Privacy Policy */}
@@ -411,11 +644,16 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             justifyContent: 'space-between',
             paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#5C5254' }}>Privacy Policy</Text>
-          <Text style={{ fontSize: 14, color: '#CEC7C5' }}>▶</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+              <ShieldIcon color="#64748B" size={16} />
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#3D2A35' }}>Privacy Policy</Text>
+          </View>
+          <ChevronRightIcon color="#C4B7BF" size={12} />
         </TouchableOpacity>
 
         {/* Contact Support */}
@@ -427,11 +665,16 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             justifyContent: 'space-between',
             paddingVertical: 12,
             borderBottomWidth: 1,
-            borderBottomColor: '#F0ECEB',
+            borderBottomColor: '#F6F0F4',
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#5C5254' }}>Contact Support</Text>
-          <Text style={{ fontSize: 14, color: '#CEC7C5' }}>▶</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+              <HelpIcon color="#64748B" size={16} />
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#3D2A35' }}>Contact Support</Text>
+          </View>
+          <ChevronRightIcon color="#C4B7BF" size={12} />
         </TouchableOpacity>
 
         {/* About Us */}
@@ -444,15 +687,104 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             paddingVertical: 12,
           }}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#5C5254' }}>About Us</Text>
-          <Text style={{ fontSize: 14, color: '#CEC7C5' }}>▶</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }}>
+              <InfoIcon color="#64748B" size={16} />
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: '#3D2A35' }}>About Awaaj Man Ki</Text>
+          </View>
+          <ChevronRightIcon color="#C4B7BF" size={12} />
         </TouchableOpacity>
       </View>
 
-      {/* Logout Action */}
-      <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-        <Text style={styles.logoutButtonText}>{t('logoutSession', 'Log Out Session')}</Text>
-      </TouchableOpacity>
+      {/* ── LOGOUT SESSION BUTTON ── */}
+      <View style={{ paddingHorizontal: 16 }}>
+        <TouchableOpacity
+          onPress={logout}
+          activeOpacity={0.85}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            height: 50,
+            borderRadius: 16,
+            backgroundColor: '#FFF2F4',
+            borderWidth: 1.5,
+            borderColor: '#FFE2E6',
+            shadowColor: '#C46F76',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <LogoutIcon size={18} color="#C46F76" />
+          <Text style={{ fontSize: 14.5, fontWeight: '800', color: '#C46F76' }}>
+            {t('logoutSession', 'Log Out Session')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Language Selector Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={langPickerVisible}
+        onRequestClose={() => setLangPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.centerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setLangPickerVisible(false)}
+        >
+          <View style={[styles.reportModalCard, { maxHeight: '70%', paddingVertical: 20, borderRadius: 24 }]}>
+            <View style={[styles.modalHeader, { paddingHorizontal: 4, marginBottom: 12 }]}>
+              <Text style={{ fontSize: 16, fontWeight: '900', color: '#2D1D15' }}>{t('preferredLanguage', 'Preferred Language')}</Text>
+              <TouchableOpacity onPress={() => setLangPickerVisible(false)} style={styles.modalCloseButton}>
+                <CloseIcon color="#8C8385" size={14} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ width: '100%' }}>
+              {supportedLanguages.map((lang: any) => {
+                const isActive = currentLanguage === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    onPress={() => {
+                      changeLanguage(lang.code);
+                      setLangPickerVisible(false);
+                    }}
+                    style={{
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F8F5F4',
+                      backgroundColor: isActive ? 'rgba(111, 64, 95, 0.08)' : 'transparent',
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 14.5,
+                      fontWeight: isActive ? '900' : '600',
+                      color: isActive ? '#6F405F' : '#2D1D15',
+                    }}>
+                      {lang.native} ({lang.label})
+                    </Text>
+                    {isActive && (
+                      <CheckIcon color="#6F405F" size={16} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* About Modal */}
       <Modal
@@ -466,7 +798,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>About Man Ki Aavaj</Text>
               <TouchableOpacity onPress={() => setAboutVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>✖</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -501,7 +833,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Community Guidelines</Text>
               <TouchableOpacity onPress={() => setGuidelinesVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>✖</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -517,7 +849,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
 
               <Text style={styles.policyHeading}>3. Respectful Dialogue</Text>
               <Text style={styles.policyBody}>
-                 Engage with empathy. Use supportive reactions (❤️ I Relate, 👍 Well Said, 🔥 Helpful, 🤝 Stay Strong, 💯 Made Me Think) to build a constructive community environment.
+                Engage with empathy. Use supportive reactions (❤️ I Relate, 👍 Well Said, 🔥 Helpful, 🤝 Stay Strong, 💯 Made Me Think) to build a constructive community environment.
               </Text>
             </ScrollView>
           </View>
@@ -536,7 +868,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Privacy Policy</Text>
               <TouchableOpacity onPress={() => setPrivacyVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>âœ•</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -566,7 +898,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Contact Support</Text>
               <TouchableOpacity onPress={() => setContactVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>âœ•</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -747,7 +1079,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                     }}
                     style={styles.modalCloseButton}
                   >
-                    <Text style={styles.modalCloseText}>✖</Text>
+                    <CloseIcon color="#8C8385" size={14} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
@@ -808,7 +1140,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                       <Text style={{ fontSize: 12, color: '#8C8385', fontWeight: '700', marginBottom: 6 }}>
                         {isMobileOtpSent ? 'Verify Mobile OTP Code:' : 'Update Mobile Number:'}
                       </Text>
-                      
+
                       {!isMobileOtpSent ? (
                         <View>
                           <TextInput
@@ -925,7 +1257,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                       <Text style={{ fontSize: 12, color: '#8C8385', fontWeight: '700', marginBottom: 6 }}>
                         {isEmailOtpSent ? 'Verify Email OTP Code:' : 'Update Email Address:'}
                       </Text>
-                      
+
                       {!isEmailOtpSent ? (
                         <View>
                           <TextInput
@@ -1265,18 +1597,18 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{t('privacySettingsTitle', 'Privacy Preferences')}</Text>
                   <TouchableOpacity onPress={() => setPrivacySettingsVisible(false)} style={styles.modalCloseButton}>
-                    <Text style={styles.modalCloseText}>✖</Text>
+                    <CloseIcon color="#8C8385" size={14} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
-                  
+
                   {/* 1. Comments & Direct Messages */}
                   <View style={{ marginBottom: 16 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                       <CommentIcon />
                       <Text style={{ fontSize: 14, fontWeight: '700', color: '#2D1D15' }}>Comments & Direct Messaging</Text>
                     </View>
-                    
+
                     {renderCheckbox("Allow comments on my posts by default", allowComments, () => setAllowComments(!allowComments))}
                     {renderCheckbox("Show public comments tab on my profile space", showPublicComments, () => setShowPublicComments(!showPublicComments))}
 
@@ -1564,11 +1896,11 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{t('safetyAndModerationTitle', 'Safety & Moderation')}</Text>
                   <TouchableOpacity onPress={() => setSafetySettingsVisible(false)} style={styles.modalCloseButton}>
-                    <Text style={styles.modalCloseText}>✖</Text>
+                    <CloseIcon color="#8C8385" size={14} />
                   </TouchableOpacity>
                 </View>
                 <ScrollView contentContainerStyle={{ padding: 20 }}>
-                  
+
                   {/* Account Standing Banner */}
                   <View style={{
                     flexDirection: 'row',
@@ -1652,7 +1984,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                           <FunnelIcon />
                           <Text style={{ fontSize: 14, fontWeight: '700', color: '#2D1D15' }}>Automated Content Filters</Text>
                         </View>
-                        
+
                         {renderCheckbox("Strict AI moderation: Auto-hide controversial or disputed thoughts", strictAi, () => setStrictAi(!strictAi))}
                         {renderCheckbox("Filter abusive comments or toxic language from discussion threads", filterAbusive, () => setFilterAbusive(!filterAbusive))}
                         {renderCheckbox("Mask offensive profanity words in feed titles (e.g. f***)", maskProfanity, () => setMaskProfanity(!maskProfanity))}
@@ -1877,7 +2209,7 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('myThoughts', 'My Thoughts')}</Text>
               <TouchableOpacity onPress={() => setMyPostsVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>✖</Text>
+                <CloseIcon color="#8C8385" size={14} />
               </TouchableOpacity>
             </View>
 
@@ -1900,9 +2232,9 @@ export function ProfileScreen({ onNavigateToChat }: { onNavigateToChat?: any } =
                       item={post}
                       currentUser={currentUser}
                       handlePostReact={reactToPost}
-                      onNavigateToChat={() => {}}
-                      setActiveReportPost={() => {}}
-                      setReportModalVisible={() => {}}
+                      onNavigateToChat={() => { }}
+                      setActiveReportPost={() => { }}
+                      setReportModalVisible={() => { }}
                       onOpenComments={async (selectedPostItem: any) => {
                         setSelectedPost(selectedPostItem);
                         setCommentModalVisible(true);

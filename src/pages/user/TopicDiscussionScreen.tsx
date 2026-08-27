@@ -513,7 +513,7 @@ export function TopicDiscussionScreen({
   const cleanTopicName = topicName.replace(/^#/, '').toUpperCase();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
@@ -683,7 +683,7 @@ export function TopicDiscussionScreen({
 
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

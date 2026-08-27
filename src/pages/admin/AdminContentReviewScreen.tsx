@@ -46,10 +46,31 @@ export function AdminContentReviewScreen() {
   };
 
   return (
-    <View style={styles.feedContainer}>
-      {/* Sub Header Title Bar */}
-      <View style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F8F5F4', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.zorba }}>Admin Console / Content Review</Text>
+    <View style={[styles.feedContainer, { backgroundColor: '#F9FAFB' }]}>
+      {/* Clean Compact Header Overview Bar */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3ECEB',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: '#2D1D15',
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      }}>
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: '#2D1D15' }}>
+            Content Review
+          </Text>
+          <Text style={{ fontSize: 11.5, color: '#8C8385', fontWeight: '500', marginTop: 2 }}>
+            Approve or reject held posts and comments
+          </Text>
+        </View>
         {loading && <ActivityIndicator size="small" color="#6F405F" />}
       </View>
 

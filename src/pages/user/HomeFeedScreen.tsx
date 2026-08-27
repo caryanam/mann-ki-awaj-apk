@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList, Modal, SafeAreaView, TextInput, Alert, StyleSheet, Image, Platform, PermissionsAndroid, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, Modal, SafeAreaView, TextInput, Alert, StyleSheet, Image, ImageBackground, Platform, PermissionsAndroid, ActivityIndicator, RefreshControl } from 'react-native';
 import { PostCardItem } from '../../components/posts/PostCardItem';
 import { CommentItem } from '../../components/posts/CommentItem';
 import { CommentComposer } from '../../components/posts/CommentComposer';
@@ -673,36 +673,126 @@ export function HomeFeedScreen({ onNavigateToChat, initialTopic, onClearInitialT
       {selectedTopic === 'All' ? (
         // ── TOPIC CATALOG VIEW ──
         <View style={{ flex: 1 }}>
-          {/* Hero Banner Card */}
-          <View style={localStyles.heroCard}>
-            <View style={localStyles.heroBannerPill}>
-              <Text style={localStyles.heroBannerPillText}>✨ मनातलं बोला… ओळख सुरक्षित ठेवा.</Text>
-            </View>
-            <Text style={localStyles.heroTitle}>
-              {t('exploreTopicCatalog', 'Discover & Join Topic Channels')}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setCustomTopicModalVisible(true)}
-              style={localStyles.heroCreateBtn}
+          {/* ── TOP HERO COVER BANNER ── */}
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderBottomLeftRadius: 28,
+            borderBottomRightRadius: 28,
+            overflow: 'hidden',
+            shadowColor: '#1A0C16',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.08,
+            shadowRadius: 14,
+            elevation: 4,
+          }}>
+            <ImageBackground
+              source={{ uri: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=900&auto=format&fit=crop&q=80' }}
+              defaultSource={require('../../assets/music-cover.jpg')}
+              style={{ width: '100%', minHeight: 165 }}
+              resizeMode="cover"
             >
-              <Text style={localStyles.heroCreateBtnText}>
-                {t('createCustomTopic', '+ Create Topic')}
-              </Text>
-            </TouchableOpacity>
+              {/* Twilight plum soft overlay */}
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(30, 16, 29, 0.42)',
+              }} />
+
+              {/* Banner Content */}
+              <View style={{ paddingHorizontal: 20, paddingTop: 24, paddingBottom: 22 }}>
+                {/* Top Pill Emblem */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                  alignSelf: 'flex-start',
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  marginBottom: 10,
+                }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '800', color: '#FEF08A', letterSpacing: 0.4 }}>
+                    ✨ ANONYMOUS EXPRESSION
+                  </Text>
+                </View>
+
+                {/* Title & Subtitle */}
+                <Text style={{ fontSize: 24, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.4, marginBottom: 4 }}>
+                  {t('exploreTopicCatalog', 'Discover & Join Topic Channels')}
+                </Text>
+                <Text style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 18, maxWidth: 320 }}>
+                  Express thoughts freely and join trending anonymous conversations.
+                </Text>
+
+                {/* Create Topic Button */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setCustomTopicModalVisible(true)}
+                  style={{
+                    marginTop: 14,
+                    alignSelf: 'flex-start',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#E67E22',
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
+                    borderRadius: 16,
+                    shadowColor: '#E67E22',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#FFFFFF' }}>
+                    {t('createCustomTopic', '+ Create Topic')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ImageBackground>
           </View>
 
-          {/* Search Box inside Catalog view */}
-          <View style={localStyles.searchBarContainer}>
+          {/* ── FLOATING SEARCH BAR ── */}
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            marginHorizontal: 16,
+            marginTop: -16,
+            borderRadius: 18,
+            paddingHorizontal: 14,
+            height: 44,
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: '#F0EAEE',
+            shadowColor: '#1A0C16',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
+            elevation: 4,
+            marginBottom: 10,
+          }}>
+            <Text style={{ fontSize: 14, marginRight: 8, color: '#9E8E98' }}>🔍</Text>
             <TextInput
-              placeholder={t('searchTopicsCatalogPlaceholder', 'Search topics or subtopics (e.g. Shayari, Love, Cricket, Politics, Job)...')}
-              placeholderTextColor={COLORS.zorba}
+              placeholder={t('searchTopicsCatalogPlaceholder', 'Search topics or subtopics (e.g. Shayari, Love, Cricket)...')}
+              placeholderTextColor="#9E8E98"
               value={searchQuery}
               onChangeText={setSearchQuery}
-              style={localStyles.searchBarInput}
+              style={{
+                flex: 1,
+                fontSize: 13,
+                color: '#2D1D15',
+                paddingVertical: 0,
+              }}
             />
             {searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={localStyles.clearSearchBtn}>
-                <Text style={{ fontSize: 13, color: COLORS.zorba, fontWeight: 'bold' }}>✕</Text>
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                <Text style={{ fontSize: 13, color: '#8C8385', fontWeight: 'bold' }}>✕</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1383,19 +1473,23 @@ const localStyles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterTabButton: {
-    flex: 1,
     height: 34,
     borderRadius: 17,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CEC7C5',
+    borderColor: '#EFEAE8',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#1A0C16',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   filterTabText: {
-    fontSize: 11,
-    color: '#8C8385',
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#6F405F',
+    fontWeight: '700',
   },
   topicBadge: {
     marginLeft: 4,
@@ -1483,24 +1577,24 @@ const localStyles = StyleSheet.create({
     paddingBottom: 24,
   },
   categoryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(111, 64, 95, 0.12)',
-    padding: 20,
-    marginHorizontal: 12,
-    marginVertical: 8,
-    shadowColor: '#2D1D15',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#F0EAEE',
+    padding: 18,
+    marginHorizontal: 16,
+    marginVertical: 7,
+    shadowColor: '#1A0C16',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   categoryTitleRow: {
     flexDirection: 'row',
@@ -1515,7 +1609,7 @@ const localStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 15.5,
     fontWeight: '900',
     color: '#2D1D15',
     letterSpacing: -0.2,
@@ -1537,10 +1631,12 @@ const localStyles = StyleSheet.create({
   subtopicChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 7,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: '#FAF9FA',
+    borderColor: '#EFEAE8',
   },
   subtopicIcon: {
     fontSize: 13,

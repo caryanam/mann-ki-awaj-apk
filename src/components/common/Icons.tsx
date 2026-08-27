@@ -245,6 +245,35 @@ export const HelpIcon = ({ color = '#8C8385', size = 18 }) => {
   );
 };
 
+export const InfoIcon = ({ color = '#8C8385', size = 18 }) => {
+  const ringSize = size * 0.95;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{
+        width: ringSize,
+        height: ringSize,
+        borderRadius: ringSize / 2,
+        borderWidth: 1.8,
+        borderColor: color,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Text style={{
+          fontSize: size * 0.58,
+          color: color,
+          fontWeight: '900',
+          textAlign: 'center',
+          includeFontPadding: false,
+          textAlignVertical: 'center',
+          fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+          fontStyle: 'italic',
+          marginTop: Platform.OS === 'android' ? -1.5 : -0.5,
+        }}>i</Text>
+      </View>
+    </View>
+  );
+};
+
 export const SettingsIcon = ({ color = '#8C8385', size = 18 }) => {
   const innerSize = size * 0.52;
   const toothSize = size * 0.16;
@@ -638,3 +667,71 @@ export const ArrowRightIcon = ({ color = '#8C8385', size = 18 }) => (
     }} />
   </View>
 );
+
+export const ChevronLeftIcon = ({ color = '#6F405F', size = 20 }) => {
+  const armSize = size * 0.42;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{
+        width: armSize,
+        height: armSize,
+        borderLeftWidth: 2.4,
+        borderBottomWidth: 2.4,
+        borderColor: color,
+        transform: [{ rotate: '45deg' }],
+        marginLeft: size * 0.12,
+        borderRadius: 1,
+      }} />
+    </View>
+  );
+};
+
+export const BackArrowIcon = ({ color = '#6F405F', size = 20 }) => {
+  const arrowSize = size * 0.36;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: size * 0.65, height: 2.2, backgroundColor: color, borderRadius: 1.1 }} />
+      <View style={{
+        position: 'absolute',
+        left: size * 0.16,
+        width: arrowSize,
+        height: arrowSize,
+        borderLeftWidth: 2.2,
+        borderTopWidth: 2.2,
+        borderColor: color,
+        transform: [{ rotate: '-45deg' }],
+        borderRadius: 0.8,
+      }} />
+    </View>
+  );
+};
+
+export const CloseIcon = ({ color = '#6F405F', size = 18 }) => {
+  const barLength = size * 0.7;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ position: 'absolute', width: barLength, height: 2.2, backgroundColor: color, borderRadius: 1.1, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ position: 'absolute', width: barLength, height: 2.2, backgroundColor: color, borderRadius: 1.1, transform: [{ rotate: '-45deg' }] }} />
+    </View>
+  );
+};
+
+export const ChevronRightIcon = ({ color = '#8C8385', size = 16 }) => {
+  const armSize = size * 0.38;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{
+        width: armSize,
+        height: armSize,
+        borderRightWidth: 2,
+        borderTopWidth: 2,
+        borderColor: color,
+        transform: [{ rotate: '45deg' }],
+        marginRight: size * 0.12,
+        borderRadius: 1,
+      }} />
+    </View>
+  );
+};
+
+

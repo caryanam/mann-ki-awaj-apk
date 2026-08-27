@@ -137,16 +137,23 @@ export function AdminEnquiriesScreen() {
       {/* Page Header */}
       <View style={{
         paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 12,
+        paddingVertical: 14,
         backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderBottomColor: '#E1DCDB',
+        borderBottomColor: '#F3ECEB',
+        elevation: 2,
+        shadowColor: '#2D1D15',
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
       }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 10 }}>
-            <Text style={{ fontSize: 20, fontWeight: '900', color: '#2D1D15' }}>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: '#2D1D15' }}>
               User Enquiries Portal
+            </Text>
+            <Text style={{ fontSize: 11.5, color: '#8C8385', fontWeight: '500', marginTop: 2 }}>
+              Track and resolve user support inquiries
             </Text>
           </View>
 

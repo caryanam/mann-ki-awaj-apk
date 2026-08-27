@@ -150,16 +150,21 @@ export function ChatScreen({ activeConversation, onConversationSelect, onBackToC
 
     return (
       <View style={[styles.chatDetailContainer, { backgroundColor: '#ECEAE8' }]}>
-        {/* Mockup styled Header */}
+        {/* Chat Detail Header */}
         <View style={{
-          height: 64,
+          height: 56,
           backgroundColor: '#FFFFFF',
           borderBottomWidth: 1,
-          borderBottomColor: '#E1DCDB',
+          borderBottomColor: '#F0EAEE',
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 16,
+          paddingHorizontal: 14,
           justifyContent: 'space-between',
+          shadowColor: '#6F405F',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.03,
+          shadowRadius: 3,
+          elevation: 1,
         }}>
           {isSearching ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -196,13 +201,15 @@ export function ChatScreen({ activeConversation, onConversationSelect, onBackToC
                     setSelectedConvoId(null);
                     if (onBackToConversations) { onBackToConversations(); }
                   }}
-                  style={{ marginRight: 12, justifyContent: 'center', alignItems: 'center' }}
+                  style={{ marginRight: 10, justifyContent: 'center', alignItems: 'center' }}
                 >
                   <View style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 17,
-                    backgroundColor: '#F5F2F1',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: '#FAF5F7',
+                    borderWidth: 1,
+                    borderColor: '#EFE5EB',
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}>
@@ -213,7 +220,7 @@ export function ChatScreen({ activeConversation, onConversationSelect, onBackToC
                       borderBottomWidth: 2,
                       borderColor: '#6F405F',
                       transform: [{ rotate: '45deg' }],
-                      marginLeft: 2,
+                      marginLeft: 3,
                     }} />
                   </View>
                 </TouchableOpacity>

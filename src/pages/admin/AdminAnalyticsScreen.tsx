@@ -36,16 +36,30 @@ export function AdminAnalyticsScreen() {
 
   return (
     <ScrollView style={[styles.feedContainer, { backgroundColor: '#FCFAF9' }]} contentContainerStyle={{ paddingBottom: 120 }}>
-      {/* Scroll Header */}
-      <View style={{ paddingVertical: 20, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Clean Compact Header Overview Bar */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3ECEB',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: '#2D1D15',
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+      }}>
         <View>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: '#2D1D15', letterSpacing: -0.3 }}>Platform Analytics</Text>
-          <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 3, fontWeight: '600' }}>AI moderation and platform metrics overview</Text>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: '#2D1D15' }}>Platform Analytics</Text>
+          <Text style={{ fontSize: 11.5, color: '#8C8385', marginTop: 2, fontWeight: '500' }}>AI moderation and platform metrics overview</Text>
         </View>
         <TouchableOpacity
           onPress={fetchStats}
           disabled={loading}
-          style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } }}
+          style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FAF7F6', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E5DFDE' }}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#6F405F" />
